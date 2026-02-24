@@ -58,3 +58,7 @@ temp/
 
 # OS
 Thumbs.db
+
+# Firebase credentials (NEVER COMMIT)
+config/firebase-service-account.json
+*-firebase-adminsdk-*.json
