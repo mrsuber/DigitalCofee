@@ -1,0 +1,19 @@
+{
+  "name": "digital-coffee-backend",
+  "version": "1.0.0",
+  "description": "Digital Coffee Backend API",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": ["digital", "coffee", "binaural", "beats"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "firebase-admin": "^11.11.0",
+    "nodemailer": "^6.9.7"
+  }
+}

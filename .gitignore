@@ -62,3 +62,6 @@ Thumbs.db
 # Firebase credentials (NEVER COMMIT)
 config/firebase-service-account.json
 *-firebase-adminsdk-*.json
+
+# Duplicate/test directories
+DigitalCofee/

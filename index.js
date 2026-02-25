@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const dotenv = require('dotenv');
 const { admin, db, auth, messaging } = require('./config/firebase');
+const emailService = require('./services/emailService');
 
 // Load environment variables
 dotenv.config();
@@ -78,26 +79,29 @@ app.get('/api/firebase/test', async (req, res) => {
     }
 });
 
-// User Registration
-app.post('/api/users/register', async (req, res) => {
+// User Registration (Email/Password)
+// Note: User must be created in Firebase Auth on client-side first
+app.post('/api/users/register', authenticateUser, async (req, res) => {
     try {
-        const { email, password, name } = req.body;
+        const { email, name } = req.body;
+        const userId = req.user.uid;
 
-        if (!email || !password || !name) {
-            return res.status(400).json({ error: 'Email, password, and name are required' });
+        if (!email || !name) {
+            return res.status(400).json({ error: 'Email and name are required' });
         }
 
-        // Create user in Firebase Auth
-        const userRecord = await auth.createUser({
-            email,
-            password,
-            displayName: name
-        });
+        // Check if user profile already exists
+        const userDoc = await db.collection('users').doc(userId).get();
+
+        if (userDoc.exists) {
+            return res.status(400).json({ error: 'User profile already exists' });
+        }
 
         // Create user document in Firestore
-        await db.collection('users').doc(userRecord.uid).set({
+        await db.collection('users').doc(userId).set({
             email,
             name,
+            provider: 'email',
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             stats: {
                 totalSessions: 0,
@@ -109,14 +113,61 @@ app.post('/api/users/register', async (req, res) => {
             }
         });
 
+        console.log('Email registration: Created user profile', userId);
+
         res.status(201).json({
             message: 'User created successfully',
-            userId: userRecord.uid,
-            email: userRecord.email
+            userId: userId
         });
     } catch (error) {
         console.error('Registration error:', error);
         res.status(400).json({ error: error.message });
+    }
+});
+
+// Social Auth Sync (Google, Apple, etc.)
+app.post('/api/users/social-auth', authenticateUser, async (req, res) => {
+    try {
+        const { email, name, provider } = req.body;
+        const userId = req.user.uid;
+
+        // Check if user already exists in Firestore
+        const userDoc = await db.collection('users').doc(userId).get();
+
+        if (userDoc.exists) {
+            // User already exists, return their ID
+            console.log('Social auth: User already exists', userId);
+            return res.json({
+                userId: userId,
+                message: 'User profile already exists'
+            });
+        }
+
+        // Create new user document in Firestore
+        await db.collection('users').doc(userId).set({
+            email: email || req.user.email,
+            name: name || req.user.name || req.user.displayName,
+            provider: provider || 'google',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            stats: {
+                totalSessions: 0,
+                totalMinutes: 0,
+                alphaSessions: 0,
+                betaSessions: 0,
+                currentStreak: 0,
+                longestStreak: 0
+            }
+        });
+
+        console.log('Social auth: Created new user profile', userId);
+
+        res.status(201).json({
+            userId: userId,
+            message: 'User profile created successfully'
+        });
+    } catch (error) {
+        console.error('Social auth error:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -126,7 +177,30 @@ app.get('/api/users/profile', authenticateUser, async (req, res) => {
         const userDoc = await db.collection('users').doc(req.user.uid).get();
 
         if (!userDoc.exists) {
-            return res.status(404).json({ error: 'User not found' });
+            // Auto-create profile if it doesn't exist
+            console.log('Profile not found, creating for user:', req.user.uid);
+            const newProfile = {
+                email: req.user.email || 'unknown@email.com',
+                name: req.user.name || req.user.displayName || req.user.email?.split('@')[0] || 'User',
+                provider: req.user.firebase?.sign_in_provider || 'email',
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                stats: {
+                    totalSessions: 0,
+                    totalMinutes: 0,
+                    alphaSessions: 0,
+                    betaSessions: 0,
+                    currentStreak: 0,
+                    longestStreak: 0
+                }
+            };
+
+            await db.collection('users').doc(req.user.uid).set(newProfile);
+            console.log('Profile created successfully for:', req.user.uid);
+
+            return res.json({
+                userId: req.user.uid,
+                ...newProfile
+            });
         }
 
         res.json({
@@ -241,6 +315,47 @@ app.get('/api/audio/tracks', (req, res) => {
             { id: 'beta-2', name: 'Active Thinking', duration: 600, waveType: 'beta', file: '/audio/beta/active-thinking.mp3' }
         ]
     });
+});
+
+// Email test endpoint
+app.post('/api/email/test', authenticateUser, async (req, res) => {
+    try {
+        const userEmail = req.user.email;
+        const result = await emailService.sendTestEmail(userEmail);
+
+        if (result.success) {
+            res.json({
+                message: 'Test email sent successfully',
+                messageId: result.messageId,
+                sentTo: userEmail
+            });
+        } else {
+            res.status(500).json({ error: result.error });
+        }
+    } catch (error) {
+        console.error('Email test error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Send welcome email endpoint
+app.post('/api/email/welcome', authenticateUser, async (req, res) => {
+    try {
+        const { email, name } = req.body;
+        const result = await emailService.sendWelcomeEmail(email || req.user.email, name || req.user.name);
+
+        if (result.success) {
+            res.json({
+                message: 'Welcome email sent successfully',
+                messageId: result.messageId
+            });
+        } else {
+            res.status(500).json({ error: result.error });
+        }
+    } catch (error) {
+        console.error('Welcome email error:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Start server
