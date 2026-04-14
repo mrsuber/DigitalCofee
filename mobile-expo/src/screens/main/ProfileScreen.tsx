@@ -13,10 +13,11 @@ import {Button} from '../../components/common/Button';
 import {Input} from '../../components/common/Input';
 import {firebaseService} from '../../services/firebase';
 import {apiService} from '../../services/api';
-import {User} from '../../types';
+import {User, Session} from '../../types';
 
 export const ProfileScreen = ({navigation}: any) => {
   const [user, setUser] = useState<User | null>(null);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
   const [hasGoogle, setHasGoogle] = useState(false);
@@ -29,6 +30,7 @@ export const ProfileScreen = ({navigation}: any) => {
 
   useEffect(() => {
     loadProfile();
+    loadSessions();
     checkAuthMethods();
   }, []);
 
@@ -38,6 +40,17 @@ export const ProfileScreen = ({navigation}: any) => {
       setUser(profileResult.data);
     } else if (profileResult.error) {
       Alert.alert('Profile Error', profileResult.error);
+    }
+  };
+
+  const loadSessions = async () => {
+    const sessionsResult = await apiService.getSessions();
+    if (sessionsResult.data) {
+      // Get last 5 sessions, sorted by date (newest first)
+      const recentSessions = (sessionsResult.data.sessions || [])
+        .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+        .slice(0, 5);
+      setSessions(recentSessions);
     }
   };
 
@@ -261,6 +274,60 @@ export const ProfileScreen = ({navigation}: any) => {
           </View>
         )}
 
+        {/* Recent Sessions */}
+        {sessions.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recent Sessions</Text>
+            <View style={styles.infoCard}>
+              {sessions.map((session, index) => (
+                <View key={session.id}>
+                  <View style={styles.sessionRow}>
+                    <View style={styles.sessionInfo}>
+                      <Text style={styles.sessionWave}>
+                        {session.waveType === 'alpha' ? '🌊 Alpha' : '⚡ Beta'}
+                      </Text>
+                      <Text style={styles.sessionDate}>
+                        {new Date(session.startTime).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                    </View>
+                    <View style={styles.sessionStats}>
+                      <Text style={styles.sessionDuration}>{session.duration} min</Text>
+                      {session.completed && (
+                        <Text style={styles.sessionCompleted}>✓ Completed</Text>
+                      )}
+                    </View>
+                  </View>
+                  {index < sessions.length - 1 && <View style={styles.divider} />}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Subscription Info */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Subscription</Text>
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Current Plan</Text>
+              <Text style={styles.infoValue}>Free</Text>
+            </View>
+            <View style={styles.divider} />
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Subscription', {source: 'profile'})}
+              style={styles.upgradeButton}>
+              <Text style={styles.upgradeButtonText}>
+                Upgrade to Premium →
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Sign Out Button */}
         <View style={styles.section}>
           <Button
@@ -394,5 +461,46 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background.surface,
     borderWidth: 1,
     borderColor: theme.colors.border.default,
+  },
+  sessionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.md,
+  },
+  sessionInfo: {
+    flex: 1,
+  },
+  sessionWave: {
+    fontSize: theme.typography.fontSize.body,
+    fontWeight: theme.typography.fontWeight.medium,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.xs,
+  },
+  sessionDate: {
+    fontSize: theme.typography.fontSize.bodySmall,
+    color: theme.colors.text.secondary,
+  },
+  sessionStats: {
+    alignItems: 'flex-end',
+  },
+  sessionDuration: {
+    fontSize: theme.typography.fontSize.body,
+    fontWeight: theme.typography.fontWeight.medium,
+    color: theme.colors.coffee.cappuccino,
+    marginBottom: theme.spacing.xs,
+  },
+  sessionCompleted: {
+    fontSize: theme.typography.fontSize.bodySmall,
+    color: theme.colors.alpha.primary,
+  },
+  upgradeButton: {
+    paddingVertical: theme.spacing.md,
+    alignItems: 'center',
+  },
+  upgradeButtonText: {
+    fontSize: theme.typography.fontSize.body,
+    fontWeight: theme.typography.fontWeight.semiBold,
+    color: theme.colors.coffee.cappuccino,
   },
 });

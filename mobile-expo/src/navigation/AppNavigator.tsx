@@ -9,6 +9,9 @@ import {RegisterScreen} from '../screens/auth/RegisterScreen';
 import {EmailVerificationScreen} from '../screens/auth/EmailVerificationScreen';
 import {HomeScreen} from '../screens/main/HomeScreen';
 import {ProfileScreen} from '../screens/main/ProfileScreen';
+import {TracksScreen} from '../screens/main/TracksScreen';
+import {PlayerScreen} from '../screens/player/PlayerScreen';
+import {SubscriptionScreen} from '../screens/subscription/SubscriptionScreen';
 
 const Stack = createStackNavigator();
 
@@ -58,6 +61,15 @@ export const AppNavigator = () => {
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="Tracks" component={TracksScreen} />
+            <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            <Stack.Screen
+              name="Player"
+              component={PlayerScreen}
+              options={{
+                presentation: 'modal',
+              }}
+            />
           </>
         ) : (
           // Unauthenticated Stack

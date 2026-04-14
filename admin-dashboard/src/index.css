@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --color-coffee-50: #F7F3F0;
+  --color-coffee-100: #E8DED6;
+  --color-coffee-200: #D4C4B5;
+  --color-coffee-300: #BFAA94;
+  --color-coffee-400: #AA9073;
+  --color-coffee-500: #8B7355;
+  --color-coffee-600: #6B5742;
+  --color-coffee-700: #4A3C2F;
+  --color-coffee-800: #2A211B;
+  --color-coffee-900: #1A1410;
+}
+
+@layer base {
+  body {
+    background-color: rgb(249 250 251);
+    color: rgb(17 24 39);
+  }
+}

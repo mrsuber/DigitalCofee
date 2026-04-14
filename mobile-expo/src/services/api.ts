@@ -135,6 +135,51 @@ class ApiService {
     }
   }
 
+  // Streak endpoints
+  async getCurrentStreak(): Promise<
+    ApiResponse<{
+      currentStreak: number;
+      longestStreak: number;
+      lastSessionDate: any;
+    }>
+  > {
+    try {
+      const response = await this.client.get('/streaks/current');
+      return {data: response.data};
+    } catch (error: any) {
+      return {
+        error: error.response?.data?.error || 'Failed to fetch streak',
+      };
+    }
+  }
+
+  async getStreakHistory(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<
+    ApiResponse<{
+      history: Array<{
+        date: string;
+        sessionCount: number;
+        totalMinutes: number;
+        waveTypes: string[];
+      }>;
+    }>
+  > {
+    try {
+      const params: any = {};
+      if (startDate) params.startDate = startDate;
+      if (endDate) params.endDate = endDate;
+
+      const response = await this.client.get('/streaks/history', {params});
+      return {data: response.data};
+    } catch (error: any) {
+      return {
+        error: error.response?.data?.error || 'Failed to fetch streak history',
+      };
+    }
+  }
+
   // Health check
   async healthCheck(): Promise<ApiResponse<{status: string}>> {
     try {
