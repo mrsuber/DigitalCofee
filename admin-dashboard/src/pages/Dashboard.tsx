@@ -1,21 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Music, TrendingUp, Clock } from 'lucide-react';
+import {
+  Users,
+  Music,
+  TrendingUp,
+  Clock,
+  Crown,
+  Activity,
+  Zap,
+  RefreshCw
+} from 'lucide-react';
 import { apiService } from '../services/api';
+import { StatsCard } from '../components/common/StatsCard';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
-interface DashboardStats {
+interface AdminStats {
   totalUsers: number;
   activeUsers: number;
   totalSessions: number;
-  audioFiles: number;
+  sessionsToday: number;
+  totalListeningTime: number;
+  avgSessionTime: number;
+  premiumUsers: number;
+  freeUsers: number;
+  totalTracks: number;
+  alphaTracks: number;
+  betaTracks: number;
 }
 
 export const Dashboard: React.FC = () => {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalUsers: 0,
-    activeUsers: 0,
-    totalSessions: 0,
-    audioFiles: 0,
-  });
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -26,28 +39,17 @@ export const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      setError('');
 
-      // Fetch users
-      const usersResponse = await apiService.getAllUsers();
-      const totalUsers = usersResponse.data?.users?.length || 0;
+      // Fetch comprehensive stats from backend
+      const statsResponse = await apiService.getAdminStats();
 
-      // Fetch audio tracks
-      const tracksResponse = await apiService.getAudioTracks();
-      const alphaCount = tracksResponse.data?.alpha?.length || 0;
-      const betaCount = tracksResponse.data?.beta?.length || 0;
-      const audioFiles = alphaCount + betaCount;
+      if (statsResponse.error) {
+        setError(statsResponse.error);
+        return;
+      }
 
-      // For now, we'll estimate active users and sessions
-      // TODO: Add proper endpoints in backend for these stats
-      const activeUsers = Math.floor(totalUsers * 0.6); // Estimate 60% active
-      const totalSessions = totalUsers * 3; // Estimate 3 sessions per user
-
-      setStats({
-        totalUsers,
-        activeUsers,
-        totalSessions,
-        audioFiles,
-      });
+      setStats(statsResponse.data);
     } catch (err: any) {
       setError('Failed to load dashboard data');
       console.error('Dashboard error:', err);
@@ -56,17 +58,20 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const statCards = [
-    { icon: Users, label: 'Total Users', value: stats.totalUsers, color: 'bg-blue-500' },
-    { icon: TrendingUp, label: 'Active Users', value: stats.activeUsers, color: 'bg-green-500' },
-    { icon: Clock, label: 'Total Sessions', value: stats.totalSessions, color: 'bg-purple-500' },
-    { icon: Music, label: 'Audio Files', value: stats.audioFiles, color: 'bg-coffee-500' },
-  ];
+  // Format time in hours and minutes
+  const formatTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-coffee-600 border-t-transparent"></div>
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent"></div>
       </div>
     );
   }
@@ -78,7 +83,7 @@ export const Dashboard: React.FC = () => {
         <p className="text-sm mt-1">{error}</p>
         <button
           onClick={fetchDashboardData}
-          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
         >
           Retry
         </button>
@@ -86,35 +91,150 @@ export const Dashboard: React.FC = () => {
     );
   }
 
+  if (!stats) {
+    return null;
+  }
+
+  // Data for charts
+  const waveTypeData = [
+    { name: 'Alpha Waves', value: stats.alphaTracks, color: '#8B5CF6' },
+    { name: 'Beta Waves', value: stats.betaTracks, color: '#06B6D4' },
+  ];
+
+  const userTypeData = [
+    { name: 'Premium Users', value: stats.premiumUsers, color: '#F59E0B' },
+    { name: 'Free Users', value: stats.freeUsers, color: '#6B7280' },
+  ];
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-gray-800">Dashboard</h2>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
+          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening with your app.</p>
+        </div>
         <button
           onClick={fetchDashboardData}
-          className="px-4 py-2 text-sm bg-coffee-600 text-white rounded-lg hover:bg-coffee-700 transition"
+          className="flex items-center gap-2 px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
         >
-          🔄 Refresh
+          <RefreshCw className="w-4 h-4" />
+          Refresh
         </button>
       </div>
+
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat, i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">{stat.label}</p>
-                <p className="text-3xl font-bold text-gray-800 mt-2">{stat.value}</p>
-              </div>
-              <div className={`${stat.color} p-3 rounded-lg`}>
-                <stat.icon className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </div>
-        ))}
+        <StatsCard
+          title="Total Users"
+          value={stats.totalUsers.toLocaleString()}
+          icon={Users}
+          subtitle={`${stats.activeUsers} active`}
+          colorClass="bg-blue-500"
+        />
+        <StatsCard
+          title="Premium Users"
+          value={stats.premiumUsers.toLocaleString()}
+          icon={Crown}
+          subtitle={`${Math.round((stats.premiumUsers / stats.totalUsers) * 100)}% of users`}
+          colorClass="bg-amber-500"
+        />
+        <StatsCard
+          title="Total Sessions"
+          value={stats.totalSessions.toLocaleString()}
+          icon={Activity}
+          subtitle={`${stats.sessionsToday} today`}
+          colorClass="bg-purple-500"
+        />
+        <StatsCard
+          title="Audio Tracks"
+          value={stats.totalTracks.toLocaleString()}
+          icon={Music}
+          subtitle={`${stats.alphaTracks} alpha, ${stats.betaTracks} beta`}
+          colorClass="bg-cyan-500"
+        />
+      </div>
+
+      {/* Second Row Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StatsCard
+          title="Total Listening Time"
+          value={formatTime(stats.totalListeningTime)}
+          icon={Clock}
+          subtitle="All users combined"
+          colorClass="bg-green-500"
+        />
+        <StatsCard
+          title="Avg Session Time"
+          value={formatTime(stats.avgSessionTime)}
+          icon={Zap}
+          subtitle="Per session"
+          colorClass="bg-indigo-500"
+        />
+        <StatsCard
+          title="Active Users"
+          value={stats.activeUsers.toLocaleString()}
+          icon={TrendingUp}
+          subtitle={`${Math.round((stats.activeUsers / stats.totalUsers) * 100)}% of total`}
+          colorClass="bg-emerald-500"
+        />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Wave Type Distribution */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Track Distribution</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={waveTypeData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {waveTypeData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* User Type Distribution */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">User Subscriptions</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={userTypeData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {userTypeData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Real-time indicator */}
-      <div className="mt-6 flex items-center text-sm text-gray-600">
+      <div className="flex items-center justify-center text-sm text-gray-500">
         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
         <span>Live data from API</span>
       </div>

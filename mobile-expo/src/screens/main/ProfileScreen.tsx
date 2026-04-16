@@ -3,11 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {theme} from '../../theme';
 import {Button} from '../../components/common/Button';
 import {Input} from '../../components/common/Input';
@@ -309,6 +309,33 @@ export const ProfileScreen = ({navigation}: any) => {
           </View>
         )}
 
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.infoCard}>
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => navigation.navigate('StreakCalendar')}>
+              <Text style={styles.infoLabel}>📅 View Streak Calendar</Text>
+              <Text style={styles.arrow}>→</Text>
+            </TouchableOpacity>
+            <View style={styles.divider} />
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => navigation.navigate('Settings')}>
+              <Text style={styles.infoLabel}>⚙️ Settings</Text>
+              <Text style={styles.arrow}>→</Text>
+            </TouchableOpacity>
+            <View style={styles.divider} />
+            <TouchableOpacity
+              style={styles.infoRow}
+              onPress={() => navigation.navigate('Help')}>
+              <Text style={styles.infoLabel}>💬 Help & Support</Text>
+              <Text style={styles.arrow}>→</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Subscription Info */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Subscription</Text>
@@ -502,5 +529,9 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.body,
     fontWeight: theme.typography.fontWeight.semiBold,
     color: theme.colors.coffee.cappuccino,
+  },
+  arrow: {
+    fontSize: 18,
+    color: theme.colors.text.secondary,
   },
 });

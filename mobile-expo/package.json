@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@grpc/proto-loader": "^0.8.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-google-signin/google-signin": "^16.1.1",
     "@react-navigation/bottom-tabs": "^7.14.0",
@@ -23,6 +24,8 @@
     "expo-status-bar": "~3.0.9",
     "expo-web-browser": "^15.0.10",
     "firebase": "^12.9.0",
+    "google-gax": "^5.0.6",
+    "protobufjs": "^8.0.1",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-safe-area-context": "~5.6.0",

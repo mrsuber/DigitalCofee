@@ -3,12 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   Alert,
   Animated,
   Dimensions,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import {LinearGradient} from 'expo-linear-gradient';
 import {Audio} from 'expo-av';
 import {theme} from '../../theme';
@@ -113,6 +113,8 @@ export const PlayerScreen: React.FC<PlayerScreenProps> = ({
       });
 
       const audioUrl = `https://digitalcoffee.cafe${track.file}`;
+      console.log('Loading audio from:', audioUrl);
+
       const {sound, status} = await Audio.Sound.createAsync(
         {uri: audioUrl},
         {shouldPlay: false},
@@ -126,9 +128,21 @@ export const PlayerScreen: React.FC<PlayerScreenProps> = ({
       }
 
       setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load audio:', error);
-      Alert.alert('Error', 'Failed to load audio file');
+      console.error('Audio URL:', `https://digitalcoffee.cafe${track.file}`);
+
+      // Show user-friendly error message
+      Alert.alert(
+        'Audio Unavailable',
+        'The audio file is temporarily unavailable. Please try another track or check back later.',
+        [
+          {
+            text: 'Go Back',
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
       setIsLoading(false);
     }
   };

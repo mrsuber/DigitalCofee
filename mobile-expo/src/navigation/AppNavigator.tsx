@@ -1,15 +1,20 @@
 import React, {useState, useEffect} from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {firebaseService} from '../services/firebase';
 
 // Screens
+import {OnboardingScreen} from '../screens/onboarding/OnboardingScreen';
 import {LoginScreen} from '../screens/auth/LoginScreen';
 import {RegisterScreen} from '../screens/auth/RegisterScreen';
 import {EmailVerificationScreen} from '../screens/auth/EmailVerificationScreen';
 import {HomeScreen} from '../screens/main/HomeScreen';
 import {ProfileScreen} from '../screens/main/ProfileScreen';
 import {TracksScreen} from '../screens/main/TracksScreen';
+import {SettingsScreen} from '../screens/main/SettingsScreen';
+import {HelpScreen} from '../screens/main/HelpScreen';
+import {StreakCalendarScreen} from '../screens/main/StreakCalendarScreen';
 import {PlayerScreen} from '../screens/player/PlayerScreen';
 import {SubscriptionScreen} from '../screens/subscription/SubscriptionScreen';
 
@@ -18,8 +23,11 @@ const Stack = createStackNavigator();
 export const AppNavigator = () => {
   const [user, setUser] = useState<any>(null);
   const [initializing, setInitializing] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
   useEffect(() => {
+    checkOnboarding();
+
     const unsubscribe = firebaseService.onAuthStateChanged(currentUser => {
       // Only set user if they're verified (for email/password users)
       // Google users are always verified
@@ -46,6 +54,15 @@ export const AppNavigator = () => {
     return unsubscribe;
   }, []);
 
+  const checkOnboarding = async () => {
+    const completed = await AsyncStorage.getItem('hasCompletedOnboarding');
+    setHasCompletedOnboarding(completed === 'true');
+  };
+
+  const handleOnboardingComplete = async () => {
+    setHasCompletedOnboarding(true);
+  };
+
   if (initializing) {
     return null; // Or a loading screen
   }
@@ -56,12 +73,20 @@ export const AppNavigator = () => {
         screenOptions={{
           headerShown: false,
         }}>
-        {user ? (
+        {!hasCompletedOnboarding && !user ? (
+          // Onboarding Flow
+          <Stack.Screen name="Onboarding">
+            {() => <OnboardingScreen onComplete={handleOnboardingComplete} />}
+          </Stack.Screen>
+        ) : user ? (
           // Authenticated Stack
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="Tracks" component={TracksScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Help" component={HelpScreen} />
+            <Stack.Screen name="StreakCalendar" component={StreakCalendarScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
             <Stack.Screen
               name="Player"

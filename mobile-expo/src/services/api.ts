@@ -7,7 +7,10 @@ import axios, {AxiosInstance} from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Track, Session, User, ApiResponse} from '../types';
 
-const API_BASE_URL = 'https://digitalcoffee.cafe/api';
+// Use localhost for iOS Simulator, 10.0.2.2 for Android Emulator
+const API_BASE_URL = __DEV__
+  ? 'http://localhost:3001/api'  // Development
+  : 'https://digitalcoffee.cafe/api';  // Production
 
 class ApiService {
   private client: AxiosInstance;
@@ -21,14 +24,47 @@ class ApiService {
       },
     });
 
-    // Add token to requests
+    // Add token to requests and refresh if needed
     this.client.interceptors.request.use(async config => {
-      const token = await AsyncStorage.getItem('authToken');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      // Try to get a fresh token from Firebase
+      const {firebaseService} = await import('./firebase');
+      const freshToken = await firebaseService.getIdToken();
+
+      if (freshToken) {
+        config.headers.Authorization = `Bearer ${freshToken}`;
+      } else {
+        // Fallback to stored token
+        const token = await AsyncStorage.getItem('authToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
       return config;
     });
+
+    // Add response interceptor to handle 401 errors
+    this.client.interceptors.response.use(
+      response => response,
+      async error => {
+        const originalRequest = error.config;
+
+        // If we get a 401 and haven't retried yet
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+
+          // Try to refresh the token
+          const {firebaseService} = await import('./firebase');
+          const freshToken = await firebaseService.getIdToken();
+
+          if (freshToken) {
+            originalRequest.headers.Authorization = `Bearer ${freshToken}`;
+            return this.client(originalRequest);
+          }
+        }
+
+        return Promise.reject(error);
+      }
+    );
   }
 
   // User endpoints

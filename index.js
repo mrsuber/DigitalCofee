@@ -1083,11 +1083,20 @@ app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
         const sessionsSnapshot = await db.collection('sessions').get();
         const totalSessions = sessionsSnapshot.size;
 
-        // Calculate total minutes
-        let totalMinutes = 0;
+        // Sessions today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTimestamp = admin.firestore.Timestamp.fromDate(today);
+
+        const sessionsToday = await db.collection('sessions')
+            .where('startTime', '>=', todayTimestamp)
+            .get();
+
+        // Calculate total listening time and average
+        let totalListeningTime = 0;
         sessionsSnapshot.forEach(doc => {
             const data = doc.data();
-            totalMinutes += data.duration || 0;
+            totalListeningTime += data.duration || 0;
         });
 
         // Count premium users
@@ -1107,9 +1116,15 @@ app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
             return new Date(user.metadata.lastSignInTime) > thirtyDaysAgo;
         }).length;
 
-        // Count audio tracks
+        // Count audio tracks by type
         const tracksSnapshot = await db.collection('audioTracks').get();
-        const totalAudioFiles = tracksSnapshot.size;
+        let alphaTracks = 0;
+        let betaTracks = 0;
+        tracksSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.waveType === 'alpha') alphaTracks++;
+            else if (data.waveType === 'beta') betaTracks++;
+        });
 
         res.json({
             totalUsers,
@@ -1117,14 +1132,226 @@ app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
             premiumUsers,
             freeUsers: totalUsers - premiumUsers,
             totalSessions,
-            totalMinutes,
-            totalAudioFiles,
-            averageSessionsPerUser: totalUsers > 0 ? (totalSessions / totalUsers).toFixed(1) : 0,
-            averageMinutesPerSession: totalSessions > 0 ? (totalMinutes / totalSessions).toFixed(1) : 0
+            sessionsToday: sessionsToday.size,
+            totalListeningTime,
+            avgSessionTime: totalSessions > 0 ? Math.round(totalListeningTime / totalSessions) : 0,
+            totalTracks: tracksSnapshot.size,
+            alphaTracks,
+            betaTracks
         });
     } catch (error) {
         console.error('Admin stats error:', error);
         res.status(500).json({ error: 'Failed to fetch admin stats' });
+    }
+});
+
+// ========================================
+// FEEDBACK / SUPPORT ENDPOINTS
+// ========================================
+
+// Submit feedback (from mobile app)
+app.post('/api/feedback/submit', authenticateUser, async (req, res) => {
+    try {
+        const { subject, message, category, priority } = req.body;
+        const userId = req.user.uid;
+
+        // Get user details
+        const userRecord = await admin.auth().getUser(userId);
+
+        // Create feedback document
+        const feedbackData = {
+            userId,
+            userEmail: userRecord.email,
+            userName: userRecord.displayName || 'Unknown',
+            subject: subject || 'No subject',
+            message,
+            category: category || 'general', // general, bug, feature, help
+            priority: priority || 'medium', // low, medium, high
+            status: 'pending', // pending, in-progress, resolved, closed
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            responses: []
+        };
+
+        const feedbackRef = await db.collection('feedback').add(feedbackData);
+
+        res.json({
+            success: true,
+            feedbackId: feedbackRef.id,
+            message: 'Feedback submitted successfully'
+        });
+    } catch (error) {
+        console.error('Submit feedback error:', error);
+        res.status(500).json({ error: 'Failed to submit feedback' });
+    }
+});
+
+// Get all feedback (admin only)
+app.get('/api/admin/feedback', authenticateAdmin, async (req, res) => {
+    try {
+        const { status, category, limit = 50, offset = 0 } = req.query;
+
+        let query = db.collection('feedback');
+
+        // Apply filters
+        if (status && status !== 'all') {
+            query = query.where('status', '==', status);
+        }
+        if (category && category !== 'all') {
+            query = query.where('category', '==', category);
+        }
+
+        // Order by creation date (newest first)
+        query = query.orderBy('createdAt', 'desc');
+
+        // Get total count
+        const allSnapshot = await query.get();
+        const total = allSnapshot.size;
+
+        // Apply pagination
+        query = query.limit(parseInt(limit)).offset(parseInt(offset));
+
+        const snapshot = await query.get();
+        const feedback = [];
+
+        snapshot.forEach(doc => {
+            feedback.push({
+                id: doc.id,
+                ...doc.data(),
+                createdAt: doc.data().createdAt?.toDate().toISOString(),
+                updatedAt: doc.data().updatedAt?.toDate().toISOString()
+            });
+        });
+
+        res.json({
+            feedback,
+            pagination: {
+                total,
+                limit: parseInt(limit),
+                offset: parseInt(offset),
+                hasMore: (parseInt(offset) + parseInt(limit)) < total
+            }
+        });
+    } catch (error) {
+        console.error('Get feedback error:', error);
+        res.status(500).json({ error: 'Failed to fetch feedback' });
+    }
+});
+
+// Get specific feedback details (admin only)
+app.get('/api/admin/feedback/:feedbackId', authenticateAdmin, async (req, res) => {
+    try {
+        const { feedbackId } = req.params;
+
+        const doc = await db.collection('feedback').doc(feedbackId).get();
+
+        if (!doc.exists) {
+            return res.status(404).json({ error: 'Feedback not found' });
+        }
+
+        const data = doc.data();
+        res.json({
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate().toISOString(),
+            updatedAt: data.updatedAt?.toDate().toISOString()
+        });
+    } catch (error) {
+        console.error('Get feedback details error:', error);
+        res.status(500).json({ error: 'Failed to fetch feedback details' });
+    }
+});
+
+// Update feedback status (admin only)
+app.patch('/api/admin/feedback/:feedbackId', authenticateAdmin, async (req, res) => {
+    try {
+        const { feedbackId } = req.params;
+        const { status, priority, notes } = req.body;
+
+        const updateData = {
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        if (status) updateData.status = status;
+        if (priority) updateData.priority = priority;
+        if (notes) updateData.adminNotes = notes;
+
+        await db.collection('feedback').doc(feedbackId).update(updateData);
+
+        res.json({
+            success: true,
+            message: 'Feedback updated successfully'
+        });
+    } catch (error) {
+        console.error('Update feedback error:', error);
+        res.status(500).json({ error: 'Failed to update feedback' });
+    }
+});
+
+// Add response to feedback (admin only)
+app.post('/api/admin/feedback/:feedbackId/respond', authenticateAdmin, async (req, res) => {
+    try {
+        const { feedbackId } = req.params;
+        const { message, sendEmail } = req.body;
+
+        const feedbackDoc = await db.collection('feedback').doc(feedbackId).get();
+
+        if (!feedbackDoc.exists) {
+            return res.status(404).json({ error: 'Feedback not found' });
+        }
+
+        const feedbackData = feedbackDoc.data();
+        const response = {
+            message,
+            respondedBy: req.user.email || 'Admin',
+            respondedAt: new Date().toISOString()
+        };
+
+        // Add response to feedback
+        await db.collection('feedback').doc(feedbackId).update({
+            responses: admin.firestore.FieldValue.arrayUnion(response),
+            status: 'in-progress',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Send email if requested
+        if (sendEmail && feedbackData.userEmail) {
+            try {
+                await emailService.sendEmail(
+                    feedbackData.userEmail,
+                    `Re: ${feedbackData.subject}`,
+                    message
+                );
+            } catch (emailError) {
+                console.error('Failed to send email:', emailError);
+                // Continue even if email fails
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Response added successfully'
+        });
+    } catch (error) {
+        console.error('Add response error:', error);
+        res.status(500).json({ error: 'Failed to add response' });
+    }
+});
+
+// Delete feedback (admin only)
+app.delete('/api/admin/feedback/:feedbackId', authenticateAdmin, async (req, res) => {
+    try {
+        const { feedbackId } = req.params;
+
+        await db.collection('feedback').doc(feedbackId).delete();
+
+        res.json({
+            success: true,
+            message: 'Feedback deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete feedback error:', error);
+        res.status(500).json({ error: 'Failed to delete feedback' });
     }
 });
 

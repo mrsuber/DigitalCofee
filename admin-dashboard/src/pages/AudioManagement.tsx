@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Music, Trash2, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Upload, Music, Trash2, X, Play, Pause, Volume2 } from 'lucide-react';
 import { apiService } from '../services/api';
 
 interface Track {
@@ -8,7 +8,13 @@ interface Track {
   duration: number;
   waveType: 'alpha' | 'beta';
   file: string;
+  description?: string;
+  frequency?: string;
+  category?: string;
+  isPremium?: boolean;
 }
+
+import { AudioPlayer } from '../components/audio/AudioPlayer';
 
 export const AudioManagement: React.FC = () => {
   const [alphaTracks, setAlphaTracks] = useState<Track[]>([]);
@@ -16,6 +22,7 @@ export const AudioManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [playingTrack, setPlayingTrack] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTracks();
@@ -146,23 +153,34 @@ export const AudioManagement: React.FC = () => {
           {alphaTracks.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No alpha tracks yet</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {alphaTracks.map((track) => (
-                <div key={track.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                  <div className="flex items-center flex-1">
-                    <Music className="w-5 h-5 text-purple-500 mr-3" />
-                    <div>
-                      <p className="font-medium">{track.name}</p>
-                      <p className="text-sm text-gray-500">{formatDuration(track.duration)}</p>
+                <div key={track.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between p-3 bg-white hover:bg-gray-50 transition">
+                    <div className="flex items-center flex-1 cursor-pointer" onClick={() => setPlayingTrack(playingTrack === track.id ? null : track.id)}>
+                      <Music className="w-5 h-5 text-purple-500 mr-3" />
+                      <div>
+                        <p className="font-medium">{track.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {formatDuration(track.duration)}
+                          {track.frequency && ` • ${track.frequency}`}
+                          {track.isPremium && <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Premium</span>}
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => handleDelete(track.id, track.name)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      title="Delete track"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleDelete(track.id, track.name)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                    title="Delete track"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {playingTrack === track.id && (
+                    <div className="p-3 border-t border-gray-200">
+                      <AudioPlayer audioUrl={track.file} trackName={track.name} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -178,23 +196,34 @@ export const AudioManagement: React.FC = () => {
           {betaTracks.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No beta tracks yet</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {betaTracks.map((track) => (
-                <div key={track.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                  <div className="flex items-center flex-1">
-                    <Music className="w-5 h-5 text-orange-500 mr-3" />
-                    <div>
-                      <p className="font-medium">{track.name}</p>
-                      <p className="text-sm text-gray-500">{formatDuration(track.duration)}</p>
+                <div key={track.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between p-3 bg-white hover:bg-gray-50 transition">
+                    <div className="flex items-center flex-1 cursor-pointer" onClick={() => setPlayingTrack(playingTrack === track.id ? null : track.id)}>
+                      <Music className="w-5 h-5 text-orange-500 mr-3" />
+                      <div>
+                        <p className="font-medium">{track.name}</p>
+                        <p className="text-sm text-gray-500">
+                          {formatDuration(track.duration)}
+                          {track.frequency && ` • ${track.frequency}`}
+                          {track.isPremium && <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Premium</span>}
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => handleDelete(track.id, track.name)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      title="Delete track"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleDelete(track.id, track.name)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                    title="Delete track"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {playingTrack === track.id && (
+                    <div className="p-3 border-t border-gray-200">
+                      <AudioPlayer audioUrl={track.file} trackName={track.name} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
