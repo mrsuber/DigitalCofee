@@ -87,7 +87,6 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ audioUrl, trackName })
 
       {/* Track Info */}
       <div className="flex items-center gap-2">
-        <Music className="w-4 h-4 text-purple-600" />
         <span className="text-sm font-medium text-gray-700">{trackName}</span>
       </div>
 

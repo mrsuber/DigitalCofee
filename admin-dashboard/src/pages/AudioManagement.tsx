@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Upload, Music, Trash2, X, Play, Pause, Volume2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Upload, Music, Trash2, X } from 'lucide-react';
 import { apiService } from '../services/api';
 
 interface Track {

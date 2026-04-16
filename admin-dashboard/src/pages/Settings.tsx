@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, User, Bell, Database, Key, Shield, Save, Info } from 'lucide-react';
+import { Settings as SettingsIcon, User, Bell, Key, Shield, Save, Info } from 'lucide-react';
 
 export const Settings: React.FC = () => {
   const [saving, setSaving] = useState(false);

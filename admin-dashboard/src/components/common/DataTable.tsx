@@ -6,9 +6,9 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   flexRender,
-  ColumnDef,
-  SortingState,
-  ColumnFiltersState,
+  type ColumnDef,
+  type SortingState,
+  type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { ChevronUp, ChevronDown, ChevronsUpDown, Search } from 'lucide-react';
 
