@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
   View,
   Text,
@@ -7,20 +7,30 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  Animated,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {LinearGradient} from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {theme} from '../../theme';
 import {apiService} from '../../services/api';
-import {firebaseService} from '../../services/firebase';
-import {Track, User, Session} from '../../types';
+import {User, Session, Track} from '../../types';
+import {MODES, getModeByWaveType, type WaveType, type Mode} from '../../config/modes';
+import {needsReassessment} from '../../config/moodAssessment';
+import {BrainPulse} from '../../components/BrainPulse';
+import {GlassCard} from '../../components/GlassCard';
+import {mindControlTheme} from '../../theme/newDesignSystem';
 
-const {width} = Dimensions.get('window');
+const {width, height} = Dimensions.get('window');
 
 export const HomeScreen = ({navigation}: any) => {
   const [user, setUser] = useState<User | null>(null);
-  const [alphaTracks, setAlphaTracks] = useState<Track[]>([]);
-  const [betaTracks, setBetaTracks] = useState<Track[]>([]);
+  const [recommendedModes, setRecommendedModes] = useState<WaveType[]>([]);
+  const [completedModes, setCompletedModes] = useState<WaveType[]>([]);
+  const [currentModeConfig, setCurrentModeConfig] = useState<Mode | null>(null);
+  const [nextModeConfig, setNextModeConfig] = useState<Mode | null>(null);
+  const [primaryGoal, setPrimaryGoal] = useState<string>('');
+  const [tracks, setTracks] = useState<Track[]>([]);
   const [recentSessions, setRecentSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,21 +46,48 @@ export const HomeScreen = ({navigation}: any) => {
       const profileResult = await apiService.getUserProfile();
       if (profileResult.data) {
         setUser(profileResult.data);
-      } else if (profileResult.error) {
-        console.error('Failed to load profile:', profileResult.error);
-        // Don't show alert for auth errors on initial load
-        if (!profileResult.error.includes('Unauthorized')) {
-          Alert.alert('Error', profileResult.error);
+      }
+
+      // Load assessment data
+      const recommendedModesStr = await AsyncStorage.getItem('recommended_modes');
+      const completedModesStr = await AsyncStorage.getItem('completed_modes');
+      const goal = await AsyncStorage.getItem('primary_goal');
+
+      if (recommendedModesStr) {
+        const modes = JSON.parse(recommendedModesStr) as WaveType[];
+        setRecommendedModes(modes);
+
+        const completed = completedModesStr ? JSON.parse(completedModesStr) : [];
+        setCompletedModes(completed);
+
+        // Find the next mode that hasn't been completed
+        const nextMode = modes.find(mode => !completed.includes(mode));
+        if (nextMode) {
+          setCurrentModeConfig(getModeByWaveType(nextMode));
+
+          // Find the mode after next
+          const currentIndex = modes.indexOf(nextMode);
+          if (currentIndex < modes.length - 1) {
+            setNextModeConfig(getModeByWaveType(modes[currentIndex + 1]));
+          }
+        }
+
+        setPrimaryGoal(goal || 'Wellness');
+
+        // Check if reassessment is needed
+        if (needsReassessment(completed, modes)) {
+          showReassessmentPrompt();
         }
       }
 
       // Load tracks
       const tracksResult = await apiService.getTracks();
       if (tracksResult.data) {
-        setAlphaTracks(tracksResult.data.alpha || []);
-        setBetaTracks(tracksResult.data.beta || []);
-      } else if (tracksResult.error) {
-        console.error('Failed to load tracks:', tracksResult.error);
+        const allTracks = [
+          ...(tracksResult.data.alpha || []),
+          ...(tracksResult.data.beta || []),
+        ];
+        setTracks(allTracks);
       }
 
       // Load recent sessions
@@ -60,14 +97,26 @@ export const HomeScreen = ({navigation}: any) => {
           .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
           .slice(0, 3);
         setRecentSessions(recent);
-      } else if (sessionsResult.error) {
-        console.error('Failed to load sessions:', sessionsResult.error);
       }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const showReassessmentPrompt = () => {
+    Alert.alert(
+      'Congratulations! 🎉',
+      "You've completed all your personalized modes! Take a new assessment to discover more ways to enhance your mental state.",
+      [
+        {text: 'Later', style: 'cancel'},
+        {
+          text: 'Take Assessment',
+          onPress: () => navigation.navigate('MoodAssessment'),
+        },
+      ]
+    );
   };
 
   const getGreeting = () => {
@@ -77,37 +126,101 @@ export const HomeScreen = ({navigation}: any) => {
     return 'Good Evening';
   };
 
-  const handleStartSession = (track: Track) => {
-    navigation.navigate('Player', {track});
+  const getQueueProgress = () => {
+    const total = recommendedModes.length;
+    const completed = completedModes.length;
+    return {completed, total, percentage: total > 0 ? (completed / total) * 100 : 0};
   };
 
-  const handleWaveTypePress = (waveType: 'alpha' | 'beta') => {
-    const tracks = waveType === 'alpha' ? alphaTracks : betaTracks;
-    if (tracks.length > 0) {
-      handleStartSession(tracks[0]);
+  const handleStartCurrentMode = () => {
+    if (!currentModeConfig) return;
+
+    // Find a track matching this wave type
+    const matchingTrack = tracks.find(
+      track => track.waveType === currentModeConfig.waveType
+    );
+
+    if (matchingTrack) {
+      navigation.navigate('Player', {
+        track: matchingTrack,
+        mode: currentModeConfig,
+      });
+    } else {
+      Alert.alert('No Tracks Available', 'Please check your connection and try again.');
     }
   };
 
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}>
-        {/* Header with Gradient */}
+  const progress = getQueueProgress();
+
+  if (loading || !currentModeConfig) {
+    return (
+      <View style={styles.loadingContainer}>
         <LinearGradient
-          colors={['#1a1a2e', '#16213e', '#0f3460']}
-          style={styles.headerGradient}>
+          colors={[
+            mindControlTheme.colors.background.deep,
+            mindControlTheme.colors.background.space,
+          ] as readonly [string, string, ...string[]]}
+          style={StyleSheet.absoluteFill}
+        />
+        <BrainPulse
+          size={100}
+          colors={['#06b6d4', '#3b82f6', '#6366f1']}
+          pulseSpeed={1500}
+          glowIntensity={0.9}
+          active={true}
+          showWaveform={true}
+        />
+        <Text style={styles.loadingText}>Initializing Mind Control Center...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <LinearGradient
+        colors={[
+          mindControlTheme.colors.background.deep,
+          mindControlTheme.colors.background.space,
+          mindControlTheme.colors.background.nebula,
+        ] as readonly [string, string, ...string[]]}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Animated stars background */}
+      <View style={styles.starsContainer}>
+        {[...Array(40)].map((_, i) => (
+          <View
+            key={i}
+            style={[
+              styles.star,
+              {
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                opacity: Math.random() * 0.5 + 0.3,
+              },
+            ]}
+          />
+        ))}
+      </View>
+
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}>
+          {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.userName}>{user?.name || 'Welcome'}</Text>
-              <Text style={styles.tagline}>Find your focus, unlock your flow</Text>
+              <Text style={styles.userName}>{user?.name || 'Operator'}</Text>
+              <Text style={styles.tagline}>OBJECTIVE: {primaryGoal.toUpperCase()}</Text>
             </View>
             <TouchableOpacity
               onPress={() => navigation.navigate('Profile')}
               style={styles.profileButton}>
               <LinearGradient
-                colors={['#a78bfa', '#7c3aed']}
+                colors={['#06b6d4', '#3b82f6']}
                 style={styles.profileGradient}>
                 <Text style={styles.profileInitials}>
                   {user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -116,579 +229,605 @@ export const HomeScreen = ({navigation}: any) => {
             </TouchableOpacity>
           </View>
 
-          {/* Stats Cards with Glassmorphism */}
-          {user && (
-            <View style={styles.statsContainer}>
-              <View style={styles.statCard}>
-                <LinearGradient
-                  colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                  style={styles.statGradient}>
-                  <Text style={styles.statValue}>{user.stats.currentStreak}</Text>
-                  <Text style={styles.statLabel}>Day Streak</Text>
-                  <Text style={styles.statEmoji}>🔥</Text>
-                </LinearGradient>
-              </View>
-              <View style={styles.statCard}>
-                <LinearGradient
-                  colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                  style={styles.statGradient}>
-                  <Text style={styles.statValue}>{user.stats.totalSessions}</Text>
-                  <Text style={styles.statLabel}>Sessions</Text>
-                  <Text style={styles.statEmoji}>🎯</Text>
-                </LinearGradient>
-              </View>
-              <View style={styles.statCard}>
-                <LinearGradient
-                  colors={['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.05)']}
-                  style={styles.statGradient}>
-                  <Text style={styles.statValue}>{user.stats.totalMinutes}</Text>
-                  <Text style={styles.statLabel}>Minutes</Text>
-                  <Text style={styles.statEmoji}>⏱️</Text>
-                </LinearGradient>
+          {/* Central Brain Control */}
+          <View style={styles.brainControlSection}>
+            <View style={styles.brainContainer}>
+              <BrainPulse
+                size={180}
+                colors={currentModeConfig.gradient.colors as string[]}
+                pulseSpeed={2000}
+                glowIntensity={0.9}
+                active={true}
+                showWaveform={true}
+              />
+
+              {/* Orbiting Progress Rings */}
+              <View style={styles.progressRings}>
+                <View style={[styles.progressRing, {width: 220, height: 220}]}>
+                  <View style={styles.progressRingInner} />
+                </View>
               </View>
             </View>
-          )}
-        </LinearGradient>
 
-        {/* Main Content */}
-        <View style={styles.mainContent}>
-          {/* Featured Session */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Start Your Session</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Tracks')}>
-                <Text style={styles.seeAllText}>View All</Text>
+            <View style={styles.statusPanel}>
+              <Text style={styles.statusLabel}>ACTIVE MODE</Text>
+              <Text style={styles.statusValue}>{currentModeConfig.name}</Text>
+              <Text style={styles.statusSubtitle}>{currentModeConfig.subtitle}</Text>
+            </View>
+          </View>
+
+          {/* Stats Grid */}
+          {user && (
+            <View style={styles.statsGrid}>
+              <GlassCard style={styles.statCard} blur={8} opacity={0.08} borderGlow={true} glowColor="#06b6d4">
+                <Text style={styles.statValue}>{user.stats.currentStreak}</Text>
+                <Text style={styles.statLabel}>DAY STREAK</Text>
+                <View style={styles.statIcon}>
+                  <Text style={styles.statEmoji}>🔥</Text>
+                </View>
+              </GlassCard>
+              <GlassCard style={styles.statCard} blur={8} opacity={0.08} borderGlow={true} glowColor="#3b82f6">
+                <Text style={styles.statValue}>{user.stats.totalSessions}</Text>
+                <Text style={styles.statLabel}>SESSIONS</Text>
+                <View style={styles.statIcon}>
+                  <Text style={styles.statEmoji}>⚡</Text>
+                </View>
+              </GlassCard>
+              <GlassCard style={styles.statCard} blur={8} opacity={0.08} borderGlow={true} glowColor="#6366f1">
+                <Text style={styles.statValue}>{user.stats.totalMinutes}</Text>
+                <Text style={styles.statLabel}>MINUTES</Text>
+                <View style={styles.statIcon}>
+                  <Text style={styles.statEmoji}>⏱️</Text>
+                </View>
+              </GlassCard>
+              <GlassCard style={styles.statCard} blur={8} opacity={0.08} borderGlow={true} glowColor="#a855f7">
+                <Text style={styles.statValue}>{progress.completed}/{progress.total}</Text>
+                <Text style={styles.statLabel}>PROTOCOL</Text>
+                <View style={styles.statIcon}>
+                  <Text style={styles.statEmoji}>🎯</Text>
+                </View>
+              </GlassCard>
+            </View>
+          )}
+
+          {/* Main Content */}
+          <View style={styles.mainContent}>
+            {/* Current Mode - Transmission Ready */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>TRANSMISSION READY</Text>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleStartCurrentMode}>
+                <GlassCard
+                  style={styles.currentModeCard}
+                  blur={10}
+                  opacity={0.1}
+                  borderGlow={true}
+                  glowColor={currentModeConfig.gradient.colors[0]}
+                  useBlur={false}>
+                  <View style={styles.currentModeHeader}>
+                    <View
+                      style={[
+                        styles.modeIconLarge,
+                        {backgroundColor: currentModeConfig.gradient.colors[0] + '30'},
+                      ]}>
+                      <Text style={styles.modeEmojiLarge}>{currentModeConfig.icon}</Text>
+                    </View>
+                    <View style={styles.frequencyBadge}>
+                      <Text style={styles.frequencyText}>{currentModeConfig.waveType.toUpperCase()}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.modeName}>{currentModeConfig.name}</Text>
+                  <Text style={styles.modeSubtitle}>{currentModeConfig.subtitle}</Text>
+                  <Text style={styles.modeDescription} numberOfLines={2}>
+                    {currentModeConfig.description}
+                  </Text>
+
+                  <View style={styles.neuralBenefits}>
+                    <Text style={styles.neuralBenefitsTitle}>NEURAL BENEFITS</Text>
+                    {currentModeConfig.benefits.slice(0, 2).map((benefit, index) => (
+                      <Text key={index} style={styles.benefitText}>
+                        → {benefit}
+                      </Text>
+                    ))}
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={handleStartCurrentMode}
+                    activeOpacity={0.8}
+                    style={styles.transmitButtonWrapper}>
+                    <LinearGradient
+                      colors={currentModeConfig.gradient.colors as readonly [string, string, ...string[]]}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 0}}
+                      style={styles.transmitButton}>
+                      <Text style={styles.transmitButtonText}>INITIATE TRANSMISSION</Text>
+                      <Text style={styles.transmitArrow}>→</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </GlassCard>
               </TouchableOpacity>
             </View>
 
-            {/* Alpha Wave - Featured */}
-            <TouchableOpacity
-              activeOpacity={0.95}
-              onPress={() => handleWaveTypePress('alpha')}
-              style={styles.featuredCard}>
-              <LinearGradient
-                colors={['#667eea', '#764ba2', '#f093fb']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.featuredGradient}>
-                <View style={styles.featuredContent}>
-                  <View style={styles.featuredHeader}>
-                    <View style={styles.waveIconLarge}>
-                      <Text style={styles.waveEmojiLarge}>🌊</Text>
+            {/* Next Mode Preview */}
+            {nextModeConfig && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>QUEUED FREQUENCY</Text>
+                <GlassCard
+                  style={styles.nextModeCard}
+                  blur={8}
+                  opacity={0.06}
+                  borderGlow={false}
+                  useBlur={false}>
+                  <View style={styles.nextModeContent}>
+                    <View
+                      style={[
+                        styles.nextModeIcon,
+                        {backgroundColor: nextModeConfig.gradient.colors[0] + '20'},
+                      ]}>
+                      <Text style={styles.nextModeEmoji}>{nextModeConfig.icon}</Text>
                     </View>
-                    <View style={styles.featuredBadge}>
-                      <Text style={styles.featuredBadgeText}>RECOMMENDED</Text>
+                    <View style={styles.nextModeInfo}>
+                      <Text style={styles.nextModeName}>{nextModeConfig.name}</Text>
+                      <Text style={styles.nextModeSubtitle}>{nextModeConfig.subtitle}</Text>
                     </View>
-                  </View>
-
-                  <View style={styles.featuredInfo}>
-                    <Text style={styles.featuredTitle}>Alpha Waves</Text>
-                    <Text style={styles.featuredFrequency}>8-12 Hz</Text>
-                    <Text style={styles.featuredSubtitle}>
-                      Perfect for creative thinking, relaxation, and flow state
-                    </Text>
-                  </View>
-
-                  <View style={styles.featuredFooter}>
-                    <View style={styles.benefitsList}>
-                      <View style={styles.benefitItem}>
-                        <Text style={styles.benefitIcon}>✨</Text>
-                        <Text style={styles.benefitText}>Creative Flow</Text>
-                      </View>
-                      <View style={styles.benefitItem}>
-                        <Text style={styles.benefitIcon}>🧘</Text>
-                        <Text style={styles.benefitText}>Deep Calm</Text>
-                      </View>
-                      <View style={styles.benefitItem}>
-                        <Text style={styles.benefitIcon}>💡</Text>
-                        <Text style={styles.benefitText}>Ideation</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.startButtonContainer}>
-                      <View style={styles.startButton}>
-                        <Text style={styles.startButtonText}>Begin Session</Text>
-                        <Text style={styles.startArrow}>→</Text>
-                      </View>
-                      <Text style={styles.trackCountSmall}>{alphaTracks.length} tracks available</Text>
+                    <View style={styles.lockIcon}>
+                      <Text style={styles.lockEmoji}>🔒</Text>
                     </View>
                   </View>
+                </GlassCard>
+              </View>
+            )}
+
+            {/* Recent Transmissions */}
+            {recentSessions.length > 0 && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>TRANSMISSION LOG</Text>
+                  <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
+                    <Text style={styles.seeAllText}>VIEW ALL</Text>
+                  </TouchableOpacity>
                 </View>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* Beta Wave - Compact */}
-            <TouchableOpacity
-              activeOpacity={0.95}
-              onPress={() => handleWaveTypePress('beta')}
-              style={styles.compactCard}>
-              <LinearGradient
-                colors={['#1e3c72', '#2a5298', '#3a7bd5']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.compactGradient}>
-                <View style={styles.compactContent}>
-                  <View style={styles.compactLeft}>
-                    <View style={styles.waveIconMedium}>
-                      <Text style={styles.waveEmojiMedium}>⚡</Text>
-                    </View>
-                    <View style={styles.compactInfo}>
-                      <Text style={styles.compactTitle}>Beta Waves</Text>
-                      <Text style={styles.compactSubtitle}>Focus & Productivity</Text>
-                      <View style={styles.compactBenefits}>
-                        <Text style={styles.compactBenefit}>🎯 Sharp Focus</Text>
-                        <Text style={styles.compactBenefit}>⚡ High Energy</Text>
-                      </View>
-                    </View>
-                  </View>
-                  <View style={styles.compactRight}>
-                    <View style={styles.frequencyBadge}>
-                      <Text style={styles.frequencyText}>12-30 Hz</Text>
-                    </View>
-                    <View style={styles.compactButton}>
-                      <Text style={styles.compactButtonText}>Start →</Text>
-                    </View>
-                    <Text style={styles.trackCountTiny}>{betaTracks.length} tracks</Text>
-                  </View>
+                <View style={styles.recentList}>
+                  {recentSessions.map((session) => {
+                    const modeConfig = getModeByWaveType(session.waveType as WaveType);
+                    return (
+                      <GlassCard
+                        key={session.id}
+                        style={styles.recentCard}
+                        blur={6}
+                        opacity={0.05}
+                        borderGlow={false}
+                        useBlur={false}>
+                        <View
+                          style={[
+                            styles.recentIconContainer,
+                            {backgroundColor: modeConfig.gradient.colors[0] + '30'},
+                          ]}>
+                          <Text style={styles.recentIcon}>{modeConfig.icon}</Text>
+                        </View>
+                        <View style={styles.recentInfo}>
+                          <Text style={styles.recentModeName}>{modeConfig.name}</Text>
+                          <Text style={styles.recentDate}>
+                            {new Date(session.startTime).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                            })} · {session.duration} min
+                          </Text>
+                        </View>
+                        {session.completed && (
+                          <View style={styles.completedBadge}>
+                            <Text style={styles.checkmark}>✓</Text>
+                          </View>
+                        )}
+                      </GlassCard>
+                    );
+                  })}
                 </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
+              </View>
+            )}
 
-          {/* Continue Listening */}
-          {recentSessions.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recent Activity</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-                  <Text style={styles.seeAllText}>See All</Text>
+            {/* Control Panel */}
+            <View style={styles.controlPanel}>
+              <Text style={styles.sectionTitle}>CONTROL PANEL</Text>
+              <View style={styles.quickActions}>
+                <TouchableOpacity onPress={() => navigation.navigate('StreakCalendar')}>
+                  <GlassCard
+                    style={styles.quickActionCard}
+                    blur={8}
+                    opacity={0.08}
+                    borderGlow={true}
+                    glowColor="#fb923c">
+                    <Text style={styles.quickActionIcon}>📅</Text>
+                    <Text style={styles.quickActionTitle}>CALENDAR</Text>
+                  </GlassCard>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
+                  <GlassCard
+                    style={styles.quickActionCard}
+                    blur={8}
+                    opacity={0.08}
+                    borderGlow={true}
+                    glowColor="#8b5cf6">
+                    <Text style={styles.quickActionIcon}>⚙️</Text>
+                    <Text style={styles.quickActionTitle}>SETTINGS</Text>
+                  </GlassCard>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => navigation.navigate('MoodAssessment')}>
+                  <GlassCard
+                    style={styles.quickActionCard}
+                    blur={8}
+                    opacity={0.08}
+                    borderGlow={true}
+                    glowColor="#3b82f6">
+                    <Text style={styles.quickActionIcon}>🧠</Text>
+                    <Text style={styles.quickActionTitle}>RECALIBRATE</Text>
+                  </GlassCard>
                 </TouchableOpacity>
               </View>
-              <View style={styles.recentList}>
-                {recentSessions.map((session, index) => (
-                  <View key={session.id} style={styles.recentCard}>
-                    <View style={styles.recentIconContainer}>
-                      <Text style={styles.recentIcon}>
-                        {session.waveType === 'alpha' ? '🌊' : '⚡'}
-                      </Text>
-                    </View>
-                    <View style={styles.recentInfo}>
-                      <Text style={styles.recentType}>
-                        {session.waveType === 'alpha' ? 'Alpha' : 'Beta'} Session
-                      </Text>
-                      <Text style={styles.recentDate}>
-                        {new Date(session.startTime).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                        })} · {session.duration} min
-                      </Text>
-                    </View>
-                    {session.completed && (
-                      <View style={styles.recentCheckmark}>
-                        <Text style={styles.checkmarkText}>✓</Text>
-                      </View>
-                    )}
-                  </View>
-                ))}
-              </View>
             </View>
-          )}
 
-          {/* Quick Actions */}
-          <View style={styles.quickActions}>
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => navigation.navigate('StreakCalendar')}>
-              <LinearGradient
-                colors={['rgba(251, 146, 60, 0.1)', 'rgba(251, 146, 60, 0.05)']}
-                style={styles.quickActionGradient}>
-                <Text style={styles.quickActionIcon}>📅</Text>
-                <Text style={styles.quickActionTitle}>Calendar</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => navigation.navigate('Settings')}>
-              <LinearGradient
-                colors={['rgba(139, 92, 246, 0.1)', 'rgba(139, 92, 246, 0.05)']}
-                style={styles.quickActionGradient}>
-                <Text style={styles.quickActionIcon}>⚙️</Text>
-                <Text style={styles.quickActionTitle}>Settings</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.quickActionCard}
-              onPress={() => navigation.navigate('Help')}>
-              <LinearGradient
-                colors={['rgba(59, 130, 246, 0.1)', 'rgba(59, 130, 246, 0.05)']}
-                style={styles.quickActionGradient}>
-                <Text style={styles.quickActionIcon}>💬</Text>
-                <Text style={styles.quickActionTitle}>Help</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            <View style={{height: 40}} />
           </View>
-
-          <View style={{height: 40}} />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: mindControlTheme.colors.background.deep,
+  },
+  starsContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  star: {
+    position: 'absolute',
+    width: 2,
+    height: 2,
+    backgroundColor: '#ffffff',
+    borderRadius: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 14,
+    marginTop: 24,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
   scrollContent: {
     flexGrow: 1,
-  },
-  headerGradient: {
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingHorizontal: theme.spacing.xl,
-    paddingTop: theme.spacing.lg,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    marginBottom: 24,
   },
   headerContent: {
     flex: 1,
   },
   greeting: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
     fontWeight: '500',
-    marginBottom: 4,
+    marginBottom: 6,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   userName: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
-    color: theme.colors.text.primary,
-    marginBottom: 4,
+    color: '#ffffff',
+    marginBottom: 6,
     letterSpacing: -0.5,
   },
   tagline: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontWeight: '400',
+    fontSize: 12,
+    color: '#06b6d4',
+    fontWeight: '700',
+    letterSpacing: 1.5,
   },
   profileButton: {
     borderRadius: 50,
-    shadowColor: '#7c3aed',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: '#06b6d4',
+    shadowOffset: {width: 0, height: 0},
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
     elevation: 5,
   },
   profileGradient: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
   },
   profileInitials: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.text.primary,
+    color: '#ffffff',
   },
-  statsContainer: {
+  brainControlSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+    paddingHorizontal: 20,
+  },
+  brainContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  progressRings: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+  },
+  progressRing: {
+    position: 'absolute',
+    borderRadius: 1000,
+    borderWidth: 2,
+    borderColor: 'rgba(6, 182, 212, 0.3)',
+    borderStyle: 'dashed',
+  },
+  progressRingInner: {
+    flex: 1,
+  },
+  statusPanel: {
+    alignItems: 'center',
+  },
+  statusLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  statusValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 4,
+    letterSpacing: -0.5,
+  },
+  statusSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  statsGrid: {
     flexDirection: 'row',
-    paddingHorizontal: theme.spacing.lg,
-    marginTop: theme.spacing.xl,
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
     gap: 12,
+    marginBottom: 28,
   },
   statCard: {
-    flex: 1,
-    borderRadius: 20,
-    overflow: 'hidden',
-  },
-  statGradient: {
-    padding: theme.spacing.md,
+    width: (width - 56) / 2,
+    padding: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
   },
   statValue: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '800',
-    color: theme.colors.text.primary,
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontWeight: '500',
+    color: '#ffffff',
     marginBottom: 4,
   },
+  statLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  statIcon: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
   statEmoji: {
-    fontSize: 16,
+    fontSize: 20,
+    opacity: 0.6,
   },
   mainContent: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
-    paddingTop: theme.spacing.xl,
   },
   section: {
-    paddingHorizontal: theme.spacing.xl,
-    marginBottom: theme.spacing.xl,
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.text.primary,
-    letterSpacing: -0.5,
+    color: '#ffffff',
+    marginBottom: 16,
+    letterSpacing: 2,
   },
   seeAllText: {
-    fontSize: 15,
-    color: '#a78bfa',
-    fontWeight: '600',
+    fontSize: 11,
+    color: '#06b6d4',
+    fontWeight: '700',
+    letterSpacing: 1.5,
   },
-  featuredCard: {
-    marginBottom: theme.spacing.md,
-    borderRadius: 24,
-    overflow: 'hidden',
-    shadowColor: '#667eea',
-    shadowOffset: {width: 0, height: 8},
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
+  currentModeCard: {
+    marginBottom: 4,
   },
-  featuredGradient: {
-    borderRadius: 24,
-  },
-  featuredContent: {
-    padding: theme.spacing.xl,
-  },
-  featuredHeader: {
+  currentModeHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 18,
   },
-  waveIconLarge: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  modeIconLarge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  waveEmojiLarge: {
-    fontSize: 40,
+  modeEmojiLarge: {
+    fontSize: 32,
   },
-  featuredBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  frequencyBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  featuredBadgeText: {
-    fontSize: 11,
+  frequencyText: {
+    fontSize: 10,
     fontWeight: '800',
-    color: theme.colors.text.primary,
-    letterSpacing: 1,
+    color: '#ffffff',
+    letterSpacing: 1.5,
   },
-  featuredInfo: {
-    marginBottom: theme.spacing.lg,
-  },
-  featuredTitle: {
-    fontSize: 36,
+  modeName: {
+    fontSize: 28,
     fontWeight: '800',
-    color: theme.colors.text.primary,
-    marginBottom: 4,
-    letterSpacing: -1,
+    color: '#ffffff',
+    marginBottom: 6,
+    letterSpacing: -0.5,
   },
-  featuredFrequency: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.8)',
+  modeSubtitle: {
+    fontSize: 15,
+    color: 'rgba(255, 255, 255, 0.7)',
     fontWeight: '600',
     marginBottom: 12,
   },
-  featuredSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 24,
-  },
-  featuredFooter: {
-    gap: theme.spacing.lg,
-  },
-  benefitsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    gap: 6,
-  },
-  benefitIcon: {
-    fontSize: 16,
-  },
-  benefitText: {
-    fontSize: 14,
-    color: theme.colors.text.primary,
-    fontWeight: '600',
-  },
-  startButtonContainer: {
-    gap: 8,
-  },
-  startButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingVertical: 16,
-    paddingHorizontal: theme.spacing.xl,
-    borderRadius: 16,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  startButtonText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1a1a2e',
-  },
-  startArrow: {
-    fontSize: 20,
-    color: '#1a1a2e',
-    fontWeight: '700',
-  },
-  trackCountSmall: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  compactCard: {
-    borderRadius: 20,
-    overflow: 'hidden',
-    shadowColor: '#2a5298',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  compactGradient: {
-    borderRadius: 20,
-  },
-  compactContent: {
-    padding: theme.spacing.lg,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  compactLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: theme.spacing.md,
-  },
-  waveIconMedium: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  waveEmojiMedium: {
-    fontSize: 28,
-  },
-  compactInfo: {
-    flex: 1,
-  },
-  compactTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: theme.colors.text.primary,
-    marginBottom: 2,
-    letterSpacing: -0.5,
-  },
-  compactSubtitle: {
+  modeDescription: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 8,
+    lineHeight: 20,
+    marginBottom: 16,
   },
-  compactBenefits: {
-    flexDirection: 'row',
-    gap: 8,
+  neuralBenefits: {
+    marginBottom: 20,
   },
-  compactBenefit: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  compactRight: {
-    alignItems: 'flex-end',
-    gap: 8,
-  },
-  frequencyBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  frequencyText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.text.primary,
-  },
-  compactButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  compactButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1e3c72',
-  },
-  trackCountTiny: {
-    fontSize: 11,
+  neuralBenefitsTitle: {
+    fontSize: 10,
     color: 'rgba(255, 255, 255, 0.6)',
-    fontWeight: '500',
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginBottom: 10,
   },
-  recentList: {
-    gap: theme.spacing.sm,
+  benefitText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    lineHeight: 20,
+    marginBottom: 6,
   },
-  recentCard: {
+  transmitButtonWrapper: {
+    marginTop: 4,
+  },
+  transmitButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderRadius: 14,
+    shadowColor: '#06b6d4',
+    shadowOffset: {width: 0, height: 0},
+    shadowOpacity: 0.6,
+    shadowRadius: 15,
+    elevation: 8,
+  },
+  transmitButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 1.5,
+    marginRight: 10,
+  },
+  transmitArrow: {
+    fontSize: 18,
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  nextModeCard: {
+    marginBottom: 4,
+  },
+  nextModeContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
-    padding: theme.spacing.md,
+    padding: 16,
+  },
+  nextModeIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  nextModeEmoji: {
+    fontSize: 26,
+  },
+  nextModeInfo: {
+    flex: 1,
+  },
+  nextModeName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  nextModeSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  lockIcon: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  lockEmoji: {
+    fontSize: 18,
+    opacity: 0.5,
+  },
+  recentList: {
+    gap: 12,
+  },
+  recentCard: {
+    marginBottom: 2,
   },
   recentIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.md,
+    marginRight: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   recentIcon: {
     fontSize: 24,
@@ -696,54 +835,56 @@ const styles = StyleSheet.create({
   recentInfo: {
     flex: 1,
   },
-  recentType: {
-    fontSize: 16,
+  recentModeName: {
+    fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: '#ffffff',
     marginBottom: 4,
   },
   recentDate: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
   },
-  recentCheckmark: {
+  completedBadge: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#10b981',
+    backgroundColor: '#06b6d4',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#06b6d4',
+    shadowOffset: {width: 0, height: 0},
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
   },
-  checkmarkText: {
-    fontSize: 16,
-    color: theme.colors.text.primary,
+  checkmark: {
+    fontSize: 14,
+    color: '#ffffff',
     fontWeight: '700',
+  },
+  controlPanel: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
   quickActions: {
     flexDirection: 'row',
-    paddingHorizontal: theme.spacing.xl,
     gap: 12,
-    marginBottom: theme.spacing.lg,
   },
   quickActionCard: {
     flex: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  quickActionGradient: {
-    padding: theme.spacing.md,
+    padding: 18,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    gap: 8,
+    gap: 10,
   },
   quickActionIcon: {
-    fontSize: 28,
+    fontSize: 32,
   },
   quickActionTitle: {
-    fontSize: 13,
-    color: theme.colors.text.primary,
-    fontWeight: '600',
+    fontSize: 10,
+    color: '#ffffff',
+    fontWeight: '700',
+    letterSpacing: 1,
   },
 });
+
+export default HomeScreen;

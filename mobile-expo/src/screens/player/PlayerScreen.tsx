@@ -14,6 +14,8 @@ import {Audio} from 'expo-av';
 import {theme} from '../../theme';
 import {apiService} from '../../services/api';
 import {Track} from '../../types';
+import {getModeByWaveType, type Mode} from '../../config/modes';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const {width, height} = Dimensions.get('window');
 
@@ -21,6 +23,7 @@ interface PlayerScreenProps {
   route: {
     params: {
       track: Track;
+      mode?: Mode;
     };
   };
   navigation: any;
@@ -30,7 +33,11 @@ export const PlayerScreen: React.FC<PlayerScreenProps> = ({
   route,
   navigation,
 }) => {
-  const {track} = route.params;
+  const {track, mode: providedMode} = route.params;
+
+  // Get mode configuration
+  const modeConfig = providedMode || getModeByWaveType(track.waveType as any);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -45,11 +52,8 @@ export const PlayerScreen: React.FC<PlayerScreenProps> = ({
   const scaleValue = useRef(new Animated.Value(1)).current;
   const waveAnimation = useRef(new Animated.Value(0)).current;
 
-  // Gradient colors based on wave type
-  const gradientColors =
-    track.waveType === 'alpha'
-      ? ['#7C3AED', '#A78BFA', '#C4B5FD'] as const
-      : ['#2563EB', '#60A5FA', '#93C5FD'] as const;
+  // Gradient colors from mode configuration
+  const gradientColors = modeConfig.gradient.colors as readonly [string, string, ...string[]];
 
   useEffect(() => {
     loadAudio();
@@ -183,11 +187,30 @@ export const PlayerScreen: React.FC<PlayerScreenProps> = ({
     try {
       const durationMinutes = Math.floor((Date.now() - sessionStartTime.current) / 60000);
       await apiService.endSession(sessionId, durationMinutes, completed);
+
+      // If session completed, mark this mode as completed in the user's queue
+      if (completed && modeConfig) {
+        await markModeAsCompleted(modeConfig.waveType);
+      }
     } catch (error) {
       console.error('Failed to end session:', error);
     }
 
     setSessionId(null);
+  };
+
+  const markModeAsCompleted = async (waveType: string) => {
+    try {
+      const completedModesStr = await AsyncStorage.getItem('completed_modes');
+      const completedModes = completedModesStr ? JSON.parse(completedModesStr) : [];
+
+      if (!completedModes.includes(waveType)) {
+        completedModes.push(waveType);
+        await AsyncStorage.setItem('completed_modes', JSON.stringify(completedModes));
+      }
+    } catch (error) {
+      console.error('Failed to mark mode as completed:', error);
+    }
   };
 
   const handlePlayPause = async () => {
@@ -290,7 +313,7 @@ export const PlayerScreen: React.FC<PlayerScreenProps> = ({
           </TouchableOpacity>
           <View style={styles.waveBadge}>
             <Text style={styles.waveBadgeText}>
-              {track.waveType === 'alpha' ? '8-12 Hz' : '12-30 Hz'}
+              {modeConfig.subtitle}
             </Text>
           </View>
         </View>
@@ -318,7 +341,7 @@ export const PlayerScreen: React.FC<PlayerScreenProps> = ({
               style={styles.vinylGradient}>
               <View style={styles.vinylCenter}>
                 <Text style={styles.vinylEmoji}>
-                  {track.waveType === 'alpha' ? '🌊' : '⚡'}
+                  {modeConfig.icon}
                 </Text>
               </View>
               {/* Grooves effect */}
@@ -341,9 +364,9 @@ export const PlayerScreen: React.FC<PlayerScreenProps> = ({
 
         {/* Track Info */}
         <View style={styles.trackInfo}>
-          <Text style={styles.trackName}>{track.name}</Text>
+          <Text style={styles.trackName}>{modeConfig.name}</Text>
           <Text style={styles.waveType}>
-            {track.waveType === 'alpha' ? 'Alpha Waves' : 'Beta Waves'}
+            {modeConfig.subtitle}
           </Text>
         </View>
 

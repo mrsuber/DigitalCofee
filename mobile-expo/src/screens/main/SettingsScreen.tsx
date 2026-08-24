@@ -12,6 +12,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {theme} from '../../theme';
 import {firebaseService} from '../../services/firebase';
+import {useTheme} from '../../context/ThemeContext';
 
 interface SettingsState {
   notifications: {
@@ -33,6 +34,8 @@ interface SettingsState {
 }
 
 export const SettingsScreen = ({navigation}: any) => {
+  const {isDarkMode, toggleTheme, colors} = useTheme();
+
   const [settings, setSettings] = useState<SettingsState>({
     notifications: {
       sessionReminders: true,
@@ -104,6 +107,11 @@ export const SettingsScreen = ({navigation}: any) => {
   };
 
   const updateAppSetting = (key: keyof SettingsState['app'], value: boolean) => {
+    // Handle dark mode specially using theme context
+    if (key === 'darkMode') {
+      toggleTheme();
+    }
+
     const newSettings = {
       ...settings,
       app: {
@@ -163,42 +171,44 @@ export const SettingsScreen = ({navigation}: any) => {
     );
   };
 
+  const dynamicStyles = getStyles(colors);
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, {backgroundColor: colors.background.primary}]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Text style={styles.backButton}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Settings</Text>
+          <Text style={dynamicStyles.title}>Settings</Text>
         </View>
 
         {/* Notifications Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
-          <View style={styles.card}>
+          <Text style={dynamicStyles.sectionTitle}>Notifications</Text>
+          <View style={dynamicStyles.card}>
             <SettingRow
               label="Session Reminders"
               description="Remind me when it's time for a session"
               value={settings.notifications.sessionReminders}
               onValueChange={value => updateNotificationSetting('sessionReminders', value)}
             />
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <SettingRow
               label="Streak Reminders"
               description="Notify me if my streak is about to break"
               value={settings.notifications.streakReminders}
               onValueChange={value => updateNotificationSetting('streakReminders', value)}
             />
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <SettingRow
               label="Weekly Reports"
               description="Send me weekly progress summaries"
               value={settings.notifications.weeklyReports}
               onValueChange={value => updateNotificationSetting('weeklyReports', value)}
             />
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <SettingRow
               label="New Track Alerts"
               description="Notify me when new tracks are added"
@@ -210,12 +220,12 @@ export const SettingsScreen = ({navigation}: any) => {
 
         {/* Audio Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Audio</Text>
-          <View style={styles.card}>
+          <Text style={dynamicStyles.sectionTitle}>Audio</Text>
+          <View style={dynamicStyles.card}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Audio Quality</Text>
-                <Text style={styles.settingDescription}>
+                <Text style={dynamicStyles.settingLabel}>Audio Quality</Text>
+                <Text style={dynamicStyles.settingDescription}>
                   {settings.audio.quality === 'high' ? 'High (320kbps)' : settings.audio.quality === 'medium' ? 'Medium (192kbps)' : 'Low (128kbps)'}
                 </Text>
               </View>
@@ -230,8 +240,8 @@ export const SettingsScreen = ({navigation}: any) => {
                     ]}>
                     <Text
                       style={[
-                        styles.qualityButtonText,
-                        settings.audio.quality === q && styles.qualityButtonTextActive,
+                        dynamicStyles.qualityButtonText,
+                        settings.audio.quality === q && dynamicStyles.qualityButtonTextActive,
                       ]}>
                       {q.charAt(0).toUpperCase()}
                     </Text>
@@ -239,14 +249,14 @@ export const SettingsScreen = ({navigation}: any) => {
                 ))}
               </View>
             </View>
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <SettingRow
               label="Download Over WiFi Only"
               description="Only download tracks when connected to WiFi"
               value={settings.audio.downloadOverWifiOnly}
               onValueChange={value => updateAudioSetting('downloadOverWifiOnly', value)}
             />
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <SettingRow
               label="Auto-Play Next Track"
               description="Automatically play the next track in queue"
@@ -258,22 +268,22 @@ export const SettingsScreen = ({navigation}: any) => {
 
         {/* App Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App Preferences</Text>
-          <View style={styles.card}>
+          <Text style={dynamicStyles.sectionTitle}>App Preferences</Text>
+          <View style={dynamicStyles.card}>
             <SettingRow
               label="Dark Mode"
               description="Use dark theme throughout the app"
-              value={settings.app.darkMode}
+              value={isDarkMode}
               onValueChange={value => updateAppSetting('darkMode', value)}
             />
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <SettingRow
               label="Haptic Feedback"
               description="Vibrate on button presses"
               value={settings.app.hapticFeedback}
               onValueChange={value => updateAppSetting('hapticFeedback', value)}
             />
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <SettingRow
               label="Keep Screen On"
               description="Prevent screen from sleeping during sessions"
@@ -285,53 +295,53 @@ export const SettingsScreen = ({navigation}: any) => {
 
         {/* Account Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.card}>
+          <Text style={dynamicStyles.sectionTitle}>Account</Text>
+          <View style={dynamicStyles.card}>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Email</Text>
-                <Text style={styles.settingDescription}>{user?.email || 'Not logged in'}</Text>
+                <Text style={dynamicStyles.settingLabel}>Email</Text>
+                <Text style={dynamicStyles.settingDescription}>{user?.email || 'Not logged in'}</Text>
               </View>
             </View>
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <TouchableOpacity
               style={styles.settingRow}
               onPress={() => navigation.navigate('Profile')}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Manage Profile</Text>
-                <Text style={styles.settingDescription}>View and edit your profile</Text>
+                <Text style={dynamicStyles.settingLabel}>Manage Profile</Text>
+                <Text style={dynamicStyles.settingDescription}>View and edit your profile</Text>
               </View>
-              <Text style={styles.arrow}>→</Text>
+              <Text style={dynamicStyles.arrow}>→</Text>
             </TouchableOpacity>
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <TouchableOpacity
               style={styles.settingRow}
               onPress={() => navigation.navigate('Subscription', {source: 'settings'})}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Subscription</Text>
-                <Text style={styles.settingDescription}>Manage your subscription</Text>
+                <Text style={dynamicStyles.settingLabel}>Subscription</Text>
+                <Text style={dynamicStyles.settingDescription}>Manage your subscription</Text>
               </View>
-              <Text style={styles.arrow}>→</Text>
+              <Text style={dynamicStyles.arrow}>→</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Data & Storage */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data & Storage</Text>
-          <View style={styles.card}>
+          <Text style={dynamicStyles.sectionTitle}>Data & Storage</Text>
+          <View style={dynamicStyles.card}>
             <TouchableOpacity style={styles.settingRow} onPress={handleClearCache}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Clear Cache</Text>
-                <Text style={styles.settingDescription}>Free up storage space</Text>
+                <Text style={dynamicStyles.settingLabel}>Clear Cache</Text>
+                <Text style={dynamicStyles.settingDescription}>Free up storage space</Text>
               </View>
-              <Text style={styles.arrow}>→</Text>
+              <Text style={dynamicStyles.arrow}>→</Text>
             </TouchableOpacity>
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Storage Used</Text>
-                <Text style={styles.settingDescription}>0 MB</Text>
+                <Text style={dynamicStyles.settingLabel}>Storage Used</Text>
+                <Text style={dynamicStyles.settingDescription}>0 MB</Text>
               </View>
             </View>
           </View>
@@ -339,37 +349,37 @@ export const SettingsScreen = ({navigation}: any) => {
 
         {/* About Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
-          <View style={styles.card}>
+          <Text style={dynamicStyles.sectionTitle}>About</Text>
+          <View style={dynamicStyles.card}>
             <TouchableOpacity
               style={styles.settingRow}
               onPress={() => navigation.navigate('Help')}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Help & Support</Text>
-                <Text style={styles.settingDescription}>FAQs and contact support</Text>
+                <Text style={dynamicStyles.settingLabel}>Help & Support</Text>
+                <Text style={dynamicStyles.settingDescription}>FAQs and contact support</Text>
               </View>
-              <Text style={styles.arrow}>→</Text>
+              <Text style={dynamicStyles.arrow}>→</Text>
             </TouchableOpacity>
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Version</Text>
-                <Text style={styles.settingDescription}>1.0.0</Text>
+                <Text style={dynamicStyles.settingLabel}>Version</Text>
+                <Text style={dynamicStyles.settingDescription}>1.0.0</Text>
               </View>
             </View>
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <TouchableOpacity style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Terms of Service</Text>
+                <Text style={dynamicStyles.settingLabel}>Terms of Service</Text>
               </View>
-              <Text style={styles.arrow}>→</Text>
+              <Text style={dynamicStyles.arrow}>→</Text>
             </TouchableOpacity>
-            <View style={styles.divider} />
+            <View style={dynamicStyles.divider} />
             <TouchableOpacity style={styles.settingRow}>
               <View style={styles.settingInfo}>
-                <Text style={styles.settingLabel}>Privacy Policy</Text>
+                <Text style={dynamicStyles.settingLabel}>Privacy Policy</Text>
               </View>
-              <Text style={styles.arrow}>→</Text>
+              <Text style={dynamicStyles.arrow}>→</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -377,11 +387,11 @@ export const SettingsScreen = ({navigation}: any) => {
         {/* Danger Zone */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, styles.dangerTitle]}>Danger Zone</Text>
-          <View style={styles.card}>
+          <View style={dynamicStyles.card}>
             <TouchableOpacity style={styles.settingRow} onPress={handleDeleteAccount}>
               <View style={styles.settingInfo}>
                 <Text style={[styles.settingLabel, styles.dangerText]}>Delete Account</Text>
-                <Text style={styles.settingDescription}>
+                <Text style={dynamicStyles.settingDescription}>
                   Permanently delete your account and all data
                 </Text>
               </View>
@@ -412,8 +422,8 @@ const SettingRow: React.FC<SettingRowProps> = ({
   return (
     <View style={styles.settingRow}>
       <View style={styles.settingInfo}>
-        <Text style={styles.settingLabel}>{label}</Text>
-        <Text style={styles.settingDescription}>{description}</Text>
+        <Text style={dynamicStyles.settingLabel}>{label}</Text>
+        <Text style={dynamicStyles.settingDescription}>{description}</Text>
       </View>
       <Switch
         value={value}
@@ -428,10 +438,10 @@ const SettingRow: React.FC<SettingRowProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background.dark,
+    backgroundColor: colors.background.primary,
   },
   header: {
     paddingHorizontal: theme.spacing.lg,
@@ -445,7 +455,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: theme.typography.fontSize.display,
     fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.text.primary,
+    color: colors.text.primary,
   },
   section: {
     paddingHorizontal: theme.spacing.lg,
@@ -454,14 +464,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: theme.typography.fontSize.h3,
     fontWeight: theme.typography.fontWeight.semiBold,
-    color: theme.colors.text.primary,
+    color: colors.text.primary,
     marginBottom: theme.spacing.md,
   },
   dangerTitle: {
     color: '#EF4444',
   },
   card: {
-    backgroundColor: theme.colors.background.surface,
+    backgroundColor: colors.background.surface,
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
   },
@@ -478,22 +488,22 @@ const styles = StyleSheet.create({
   settingLabel: {
     fontSize: theme.typography.fontSize.body,
     fontWeight: theme.typography.fontWeight.medium,
-    color: theme.colors.text.primary,
+    color: colors.text.primary,
     marginBottom: 4,
   },
   settingDescription: {
     fontSize: theme.typography.fontSize.bodySmall,
-    color: theme.colors.text.secondary,
+    color: colors.text.secondary,
     lineHeight: 18,
   },
   divider: {
     height: 1,
-    backgroundColor: theme.colors.border.default,
+    backgroundColor: colors.border,
     marginVertical: theme.spacing.sm,
   },
   arrow: {
     fontSize: 18,
-    color: theme.colors.text.secondary,
+    color: colors.text.secondary,
   },
   qualityButtons: {
     flexDirection: 'row',
@@ -503,11 +513,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.background.dark,
+    backgroundColor: colors.background.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border.default,
+    borderColor: colors.border,
   },
   qualityButtonActive: {
     backgroundColor: theme.colors.coffee.cappuccino,
@@ -516,12 +526,50 @@ const styles = StyleSheet.create({
   qualityButtonText: {
     fontSize: theme.typography.fontSize.bodySmall,
     fontWeight: theme.typography.fontWeight.semiBold,
-    color: theme.colors.text.secondary,
+    color: colors.text.secondary,
   },
   qualityButtonTextActive: {
-    color: theme.colors.text.primary,
+    color: '#FFFFFF',
   },
   dangerText: {
+    color: '#EF4444',
+  },
+});
+
+// Static styles that don't depend on theme
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.lg,
+  },
+  backButton: {
+    color: theme.colors.coffee.cappuccino,
+    fontSize: theme.typography.fontSize.body,
+    marginBottom: theme.spacing.md,
+  },
+  section: {
+    paddingHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+  },
+  settingInfo: {
+    flex: 1,
+    marginRight: theme.spacing.md,
+  },
+  qualityButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  qualityButtonActive: {
+    backgroundColor: theme.colors.coffee.cappuccino,
+    borderColor: theme.colors.coffee.cappuccino,
+  },
+  dangerTitle: {
     color: '#EF4444',
   },
 });

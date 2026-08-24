@@ -8,9 +8,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Track, Session, User, ApiResponse} from '../types';
 
 // Use localhost for iOS Simulator, 10.0.2.2 for Android Emulator
-const API_BASE_URL = __DEV__
-  ? 'http://localhost:3001/api'  // Development
-  : 'https://digitalcoffee.cafe/api';  // Production
+// TEMPORARY: Using production URL for testing on physical device
+const API_BASE_URL = 'https://digitalcoffee.cafe/api';
+// const API_BASE_URL = __DEV__
+//   ? 'http://localhost:3001/api'  // Development
+//   : 'https://digitalcoffee.cafe/api';  // Production
 
 class ApiService {
   private client: AxiosInstance;

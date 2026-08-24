@@ -13,10 +13,10 @@ import {
   Tag,
   BookOpen,
   FileText,
-  Mail,
+  DollarSign,
   Activity,
-  TrendingUp,
-  Layers
+  Database,
+  Sliders
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => (
@@ -32,18 +32,18 @@ export const Sidebar: React.FC = () => (
       {[
         { to: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
         { to: '/users', icon: Users, label: 'Users' },
-        { to: '/audio', icon: Music, label: 'Audio Tracks' },
+        { to: '/audio', icon: Music, label: 'Audio Upload' },
+        { to: '/tracks', icon: Music, label: 'Track Management' },
+        { to: '/sessions', icon: Activity, label: 'User Sessions' },
         { to: '/feedback', icon: MessageSquare, label: 'Feedback' },
         { to: '/subscriptions', icon: CreditCard, label: 'Subscriptions' },
+        { to: '/revenue', icon: DollarSign, label: 'Revenue & Analytics' },
         { to: '/analytics', icon: BarChart3, label: 'Analytics' },
         { to: '/notifications', icon: Bell, label: 'Notifications' },
         { to: '/promo-codes', icon: Tag, label: 'Promo Codes' },
         { to: '/content', icon: BookOpen, label: 'Content' },
         { to: '/activity-logs', icon: FileText, label: 'Activity Logs' },
-        { to: '/email-campaigns', icon: Mail, label: 'Email Campaigns' },
-        { to: '/engagement', icon: TrendingUp, label: 'Engagement' },
-        { to: '/system-health', icon: Activity, label: 'System Health' },
-        { to: '/bulk-operations', icon: Layers, label: 'Bulk Operations' },
+        { to: '/export', icon: Database, label: 'Export & Backup' },
       ].map(item => (
         <NavLink
           key={item.to}
@@ -63,7 +63,20 @@ export const Sidebar: React.FC = () => (
     </nav>
 
     {/* Bottom Section */}
-    <div className="border-t border-gray-800 pt-4">
+    <div className="border-t border-gray-800 pt-4 space-y-1">
+      <NavLink
+        to="/app-settings"
+        className={({isActive}) =>
+          `flex items-center px-3 py-2.5 rounded-lg transition-colors ${
+            isActive
+              ? 'bg-purple-600 text-white'
+              : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+          }`
+        }
+      >
+        <Sliders className="w-5 h-5 mr-3" />
+        App Settings
+      </NavLink>
       <NavLink
         to="/settings"
         className={({isActive}) =>
@@ -75,7 +88,7 @@ export const Sidebar: React.FC = () => (
         }
       >
         <Settings className="w-5 h-5 mr-3" />
-        Settings
+        Admin Settings
       </NavLink>
     </div>
   </div>

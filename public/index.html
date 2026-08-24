@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Coffee - Focus. Relax. Achieve.</title>
+    <meta name="description" content="Experience scientifically-crafted binaural beats that enhance focus, boost creativity, and promote deep relaxation. Download Digital Coffee today.">
+    <meta name="keywords" content="binaural beats, focus music, meditation, productivity, relaxation, alpha waves, beta waves">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://digitalcoffee.cafe/">
+    <meta property="og:title" content="Digital Coffee - Focus. Relax. Achieve.">
+    <meta property="og:description" content="Experience scientifically-crafted binaural beats that enhance focus, boost creativity, and promote deep relaxation.">
+    <meta property="og:image" content="https://digitalcoffee.cafe/og-image.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://digitalcoffee.cafe/">
+    <meta property="twitter:title" content="Digital Coffee - Focus. Relax. Achieve.">
+    <meta property="twitter:description" content="Experience scientifically-crafted binaural beats that enhance focus, boost creativity, and promote deep relaxation.">
+    <meta property="twitter:image" content="https://digitalcoffee.cafe/og-image.jpg">
+
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --purple-600: #9333ea;
+            --purple-700: #7e22ce;
+            --purple-800: #6b21a8;
+            --cyan-500: #06b6d4;
+            --cyan-600: #0891b2;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--gray-800);
+            overflow-x: hidden;
+        }
+
+        /* Header/Navigation */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--gray-200);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        header.scrolled {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        nav {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--purple-600);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--purple-600), var(--cyan-500));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--gray-700);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--purple-600);
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--purple-600), var(--purple-700));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(147, 51, 234, 0.4);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 8rem 2rem 6rem;
+            background: linear-gradient(180deg, var(--gray-50) 0%, white 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 50%, rgba(147, 51, 234, 0.1), transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(6, 182, 212, 0.1), transparent 50%);
+            z-index: 0;
+        }
+
+        .hero-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-text h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--purple-600), var(--cyan-500));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-text p {
+            font-size: 1.25rem;
+            color: var(--gray-600);
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .download-badge {
+            height: 60px;
+            transition: transform 0.3s;
+        }
+
+        .download-badge:hover {
+            transform: scale(1.05);
+        }
+
+        .hero-image {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .phone-mockup {
+            width: 100%;
+            max-width: 320px;
+            position: relative;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-20px) rotate(2deg); }
+        }
+
+        .phone-frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 9 / 19;
+            background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+            border-radius: 50px;
+            padding: 12px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4),
+                        0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 30px;
+            background: #1a1a1a;
+            border-radius: 0 0 20px 20px;
+            z-index: 10;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 30%, #0f3460 100%);
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .app-header {
+            padding: 40px 20px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .app-greeting {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 2px;
+            font-weight: 500;
+        }
+
+        .app-username {
+            font-size: 20px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 2px;
+            letter-spacing: -0.5px;
+        }
+
+        .app-tagline {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .app-profile {
+            position: absolute;
+            top: 40px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #a78bfa, #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
+        }
+
+        .app-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 0 15px;
+            margin-top: 15px;
+        }
+
+        .stat-card-mini {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 10px 6px;
+            text-align: center;
+        }
+
+        .stat-value-mini {
+            font-size: 18px;
+            font-weight: 800;
+            color: white;
+            display: block;
+        }
+
+        .stat-label-mini {
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 500;
+            margin: 2px 0;
+        }
+
+        .stat-emoji-mini {
+            font-size: 12px;
+        }
+
+        .app-content {
+            padding: 20px 15px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .wave-card-alpha {
+            background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+            border-radius: 20px;
+            padding: 18px;
+            margin-bottom: 10px;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .wave-card-alpha::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .wave-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .wave-icon {
+            width: 42px;
+            height: 42px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 21px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .wave-badge {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 7px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: 0.5px;
+        }
+
+        .wave-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 2px;
+        }
+
+        .wave-frequency {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .wave-description {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.95);
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .wave-benefits {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .benefit-tag {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 8px;
+            color: white;
+            font-weight: 600;
+        }
+
+        .wave-button {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1a1a2e;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .wave-card-beta {
+            background: linear-gradient(135deg, #1e3c72, #2a5298, #3a7bd5);
+            border-radius: 16px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 6px 20px rgba(42, 82, 152, 0.25);
+        }
+
+        .wave-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .wave-icon-medium {
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .wave-info {
+            flex: 1;
+        }
+
+        .wave-title-compact {
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 2px;
+        }
+
+        .wave-subtitle {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .wave-right {
+            text-align: right;
+        }
+
+        .frequency-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 8px;
+            font-weight: 700;
+            color: white;
+            display: inline-block;
+            margin-bottom: 4px;
+        }
+
+        .start-button-compact {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            color: #1e3c72;
+        }
+
+        .vinyl-animation {
+            animation: rotate 10s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Stats Section */
+        .stats {
+            background: linear-gradient(135deg, var(--purple-600), var(--purple-800));
+            padding: 4rem 2rem;
+            color: white;
+        }
+
+        .stats-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 3rem;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-item p {
+            font-size: 1.125rem;
+            opacity: 0.9;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 2rem;
+            background: white;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 4rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: var(--gray-900);
+        }
+
+        .section-header p {
+            font-size: 1.125rem;
+            color: var(--gray-600);
+        }
+
+        .features-grid {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+            background: var(--gray-50);
+            border-radius: 1rem;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--purple-600), var(--cyan-500));
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--gray-900);
+        }
+
+        .feature-card p {
+            color: var(--gray-600);
+            line-height: 1.7;
+        }
+
+        /* Pricing Section */
+        .pricing {
+            padding: 6rem 2rem;
+            background: var(--gray-50);
+        }
+
+        .pricing-grid {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .pricing-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            border: 2px solid var(--gray-200);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .pricing-card.featured {
+            border-color: var(--purple-600);
+            transform: scale(1.05);
+            box-shadow: 0 20px 60px -10px rgba(147, 51, 234, 0.3);
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--purple-600), var(--cyan-500));
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .pricing-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-card .price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--purple-600);
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-card .price span {
+            font-size: 1.125rem;
+            color: var(--gray-600);
+            font-weight: 400;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin: 2rem 0;
+        }
+
+        .pricing-features li {
+            padding: 0.75rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .pricing-features li::before {
+            content: '✓';
+            color: var(--purple-600);
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .pricing-button {
+            width: 100%;
+            padding: 1rem;
+            background: var(--purple-600);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pricing-button:hover {
+            background: var(--purple-700);
+            transform: translateY(-2px);
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 6rem 2rem;
+            background: linear-gradient(135deg, var(--purple-600), var(--purple-800));
+            color: white;
+            text-align: center;
+        }
+
+        .cta-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .cta-content h2 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-content p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            opacity: 0.95;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--gray-900);
+            color: white;
+            padding: 4rem 2rem 2rem;
+        }
+
+        .footer-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-brand h3 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+
+        .footer-brand p {
+            color: var(--gray-300);
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-links h4 {
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: var(--gray-300);
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem 0;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding-top: 2rem;
+            border-top: 1px solid var(--gray-700);
+            text-align: center;
+            color: var(--gray-300);
+        }
+
+        /* Mobile Menu */
+        .mobile-menu-button {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray-700);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-button {
+                display: block;
+            }
+
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-text h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-card.featured {
+                transform: scale(1);
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+
+            .cta-content h2 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header id="header">
+        <nav>
+            <a href="/" class="logo">
+                <div class="logo-icon">☕</div>
+                <span>Digital Coffee</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="#download">Download</a></li>
+                <li><a href="/admin">Admin</a></li>
+            </ul>
+            <button class="mobile-menu-button">☰</button>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>Focus. Relax. Achieve.</h1>
+                <p>Experience scientifically-crafted binaural beats that enhance your focus, boost creativity, and promote deep relaxation. Your mental clarity is just a tap away.</p>
+                <div class="hero-buttons">
+                    <a href="#download">
+                        <img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83&amp;releaseDate=1705449600"
+                             alt="Download on App Store" class="download-badge">
+                    </a>
+                    <a href="#download">
+                        <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                             alt="Get it on Google Play" class="download-badge" style="height: 70px;">
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="phone-mockup">
+                    <div class="phone-frame">
+                        <div class="phone-notch"></div>
+                        <div class="phone-screen">
+                            <!-- App Header -->
+                            <div class="app-header">
+                                <div class="app-greeting">Good Morning</div>
+                                <div class="app-username">Alex</div>
+                                <div class="app-tagline">Find your focus, unlock your flow</div>
+                                <div class="app-profile">A</div>
+                            </div>
+
+                            <!-- Stats Cards -->
+                            <div class="app-stats">
+                                <div class="stat-card-mini">
+                                    <span class="stat-value-mini">7</span>
+                                    <div class="stat-label-mini">Day Streak</div>
+                                    <div class="stat-emoji-mini">🔥</div>
+                                </div>
+                                <div class="stat-card-mini">
+                                    <span class="stat-value-mini">24</span>
+                                    <div class="stat-label-mini">Sessions</div>
+                                    <div class="stat-emoji-mini">🎯</div>
+                                </div>
+                                <div class="stat-card-mini">
+                                    <span class="stat-value-mini">180</span>
+                                    <div class="stat-label-mini">Minutes</div>
+                                    <div class="stat-emoji-mini">⏱️</div>
+                                </div>
+                            </div>
+
+                            <!-- Main Content -->
+                            <div class="app-content">
+                                <div class="section-title">Start Your Session</div>
+
+                                <!-- Alpha Wave Card -->
+                                <div class="wave-card-alpha">
+                                    <div class="wave-header">
+                                        <div class="wave-icon">🌊</div>
+                                        <div class="wave-badge">RECOMMENDED</div>
+                                    </div>
+                                    <div class="wave-title">Alpha Waves</div>
+                                    <div class="wave-frequency">8-12 Hz</div>
+                                    <div class="wave-description">Perfect for creative thinking, relaxation, and flow state</div>
+                                    <div class="wave-benefits">
+                                        <div class="benefit-tag">✨ Creative Flow</div>
+                                        <div class="benefit-tag">🧘 Deep Calm</div>
+                                        <div class="benefit-tag">💡 Ideation</div>
+                                    </div>
+                                    <div class="wave-button">Begin Session →</div>
+                                </div>
+
+                                <!-- Beta Wave Card -->
+                                <div class="wave-card-beta">
+                                    <div class="wave-left">
+                                        <div class="wave-icon-medium">⚡</div>
+                                        <div class="wave-info">
+                                            <div class="wave-title-compact">Beta Waves</div>
+                                            <div class="wave-subtitle">Focus & Productivity</div>
+                                        </div>
+                                    </div>
+                                    <div class="wave-right">
+                                        <div class="frequency-badge">12-30 Hz</div>
+                                        <div class="start-button-compact">Start →</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="stats-container">
+            <div class="stat-item">
+                <h3>10K+</h3>
+                <p>Active Users</p>
+            </div>
+            <div class="stat-item">
+                <h3>50K+</h3>
+                <p>Sessions Completed</p>
+            </div>
+            <div class="stat-item">
+                <h3>4.8★</h3>
+                <p>App Rating</p>
+            </div>
+            <div class="stat-item">
+                <h3>100K+</h3>
+                <p>Hours of Focus</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="section-header">
+            <h2>Powerful Features for Your Mind</h2>
+            <p>Unlock your full potential with scientifically-backed audio technology designed to optimize your mental state.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>Enhanced Focus</h3>
+                <p>Beta wave frequencies (13-30 Hz) help you concentrate deeply on tasks, boosting productivity and mental clarity.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>Boost Creativity</h3>
+                <p>Alpha wave frequencies (8-13 Hz) unlock creative thinking and innovative problem-solving abilities.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">😌</div>
+                <h3>Deep Relaxation</h3>
+                <p>Carefully crafted soundscapes guide you into states of calm and relaxation, reducing stress and anxiety.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Track Progress</h3>
+                <p>Monitor your listening streaks, session history, and personal growth with detailed analytics.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎧</div>
+                <h3>Premium Audio</h3>
+                <p>High-quality binaural beats and ambient soundscapes designed by audio professionals.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌙</div>
+                <h3>Better Sleep</h3>
+                <p>Specialized tracks help you wind down and achieve deeper, more restful sleep patterns.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="section-header">
+            <h2>Choose Your Plan</h2>
+            <p>Start free, upgrade when you're ready. All plans include our core features.</p>
+        </div>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Free</h3>
+                <div class="price">$0<span>/month</span></div>
+                <p>Perfect for getting started</p>
+                <ul class="pricing-features">
+                    <li>4 Alpha Wave Tracks</li>
+                    <li>4 Beta Wave Tracks</li>
+                    <li>Basic Progress Tracking</li>
+                    <li>Daily Session Limits</li>
+                </ul>
+                <button class="pricing-button">Get Started</button>
+            </div>
+
+            <div class="pricing-card featured">
+                <div class="pricing-badge">MOST POPULAR</div>
+                <h3>Premium</h3>
+                <div class="price">$9.99<span>/month</span></div>
+                <p>For serious practitioners</p>
+                <ul class="pricing-features">
+                    <li>Unlimited Sessions</li>
+                    <li>Full Track Library</li>
+                    <li>Advanced Analytics</li>
+                    <li>Offline Downloads</li>
+                    <li>Priority Support</li>
+                    <li>No Ads</li>
+                </ul>
+                <button class="pricing-button">Start Free Trial</button>
+            </div>
+
+            <div class="pricing-card">
+                <h3>Lifetime</h3>
+                <div class="price">$99<span>one-time</span></div>
+                <p>Best value, pay once</p>
+                <ul class="pricing-features">
+                    <li>All Premium Features</li>
+                    <li>Lifetime Access</li>
+                    <li>Future Updates Free</li>
+                    <li>VIP Support</li>
+                    <li>Early Feature Access</li>
+                    <li>Community Access</li>
+                </ul>
+                <button class="pricing-button">Buy Lifetime</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section" id="download">
+        <div class="cta-content">
+            <h2>Ready to Transform Your Mind?</h2>
+            <p>Join thousands of users who have already discovered the power of Digital Coffee. Download now and start your journey to better focus and relaxation.</p>
+            <div class="hero-buttons" style="justify-content: center;">
+                <a href="#download">
+                    <img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/white/en-us?size=250x83"
+                         alt="Download on App Store" class="download-badge">
+                </a>
+                <a href="#download">
+                    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+                         alt="Get it on Google Play" class="download-badge" style="height: 70px;">
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h3>Digital Coffee</h3>
+                <p>Scientifically-crafted binaural beats for enhanced focus, creativity, and relaxation.</p>
+                <p>&copy; 2026 Digital Coffee. All rights reserved.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="#download">Download</a></li>
+                    <li><a href="/admin">Admin Portal</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="/about">About Us</a></li>
+                    <li><a href="/contact">Contact</a></li>
+                    <li><a href="#careers">Careers</a></li>
+                    <li><a href="#press">Press Kit</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="/privacy">Privacy Policy</a></li>
+                    <li><a href="/terms">Terms of Service</a></li>
+                    <li><a href="#cookies">Cookie Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>Made with ☕ and 💜 for better focus and relaxation</p>
+        </div>
+    </footer>
+
+    <script>
+        // Header scroll effect
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('header');
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Smooth scrolling
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -9,6 +9,8 @@ import {OnboardingScreen} from '../screens/onboarding/OnboardingScreen';
 import {LoginScreen} from '../screens/auth/LoginScreen';
 import {RegisterScreen} from '../screens/auth/RegisterScreen';
 import {EmailVerificationScreen} from '../screens/auth/EmailVerificationScreen';
+import {MoodAssessmentScreen} from '../screens/MoodAssessmentScreen';
+import {AssessmentResultsScreen} from '../screens/AssessmentResultsScreen';
 import {HomeScreen} from '../screens/main/HomeScreen';
 import {ProfileScreen} from '../screens/main/ProfileScreen';
 import {TracksScreen} from '../screens/main/TracksScreen';
@@ -24,9 +26,11 @@ export const AppNavigator = () => {
   const [user, setUser] = useState<any>(null);
   const [initializing, setInitializing] = useState(true);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+  const [hasCompletedAssessment, setHasCompletedAssessment] = useState(false);
 
   useEffect(() => {
     checkOnboarding();
+    checkAssessment();
 
     const unsubscribe = firebaseService.onAuthStateChanged(currentUser => {
       // Only set user if they're verified (for email/password users)
@@ -59,8 +63,17 @@ export const AppNavigator = () => {
     setHasCompletedOnboarding(completed === 'true');
   };
 
+  const checkAssessment = async () => {
+    const completed = await AsyncStorage.getItem('mood_assessment_completed');
+    setHasCompletedAssessment(completed === 'true');
+  };
+
   const handleOnboardingComplete = async () => {
     setHasCompletedOnboarding(true);
+  };
+
+  const handleAssessmentComplete = async () => {
+    setHasCompletedAssessment(true);
   };
 
   if (initializing) {
@@ -78,9 +91,32 @@ export const AppNavigator = () => {
           <Stack.Screen name="Onboarding">
             {() => <OnboardingScreen onComplete={handleOnboardingComplete} />}
           </Stack.Screen>
-        ) : user ? (
-          // Authenticated Stack
+        ) : user && !hasCompletedAssessment ? (
+          // Mood Assessment Flow (after authentication, before main app)
           <>
+            <Stack.Screen name="MoodAssessment">
+              {(props) => (
+                <MoodAssessmentScreen
+                  {...props}
+                  onComplete={handleAssessmentComplete}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="AssessmentResults">
+              {(props) => (
+                <AssessmentResultsScreen
+                  {...props}
+                  onComplete={handleAssessmentComplete}
+                />
+              )}
+            </Stack.Screen>
+          </>
+        ) : user ? (
+          // Authenticated Stack (Main App)
+          <>
+            <Stack.Screen name="Main">
+              {(props) => <HomeScreen {...props} />}
+            </Stack.Screen>
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="Tracks" component={TracksScreen} />
@@ -95,6 +131,26 @@ export const AppNavigator = () => {
                 presentation: 'modal',
               }}
             />
+            {/* Allow re-assessment from within the app */}
+            <Stack.Screen name="MoodAssessment">
+              {(props) => (
+                <MoodAssessmentScreen
+                  {...props}
+                  onComplete={handleAssessmentComplete}
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="AssessmentResults">
+              {(props) => (
+                <AssessmentResultsScreen
+                  {...props}
+                  onComplete={() => {
+                    // For re-assessment, just navigate back to home
+                    props.navigation.navigate('Home');
+                  }}
+                />
+              )}
+            </Stack.Screen>
           </>
         ) : (
           // Unauthenticated Stack

@@ -13,10 +13,11 @@ import { PushNotifications } from './pages/PushNotifications';
 import { PromoCodes } from './pages/PromoCodes';
 import { ContentManagement } from './pages/ContentManagement';
 import { ActivityLogs } from './pages/ActivityLogs';
-import { EmailCampaigns } from './pages/EmailCampaigns';
-import { SystemHealth } from './pages/SystemHealth';
-import { UserEngagement } from './pages/UserEngagement';
-import { BulkOperations } from './pages/BulkOperations';
+import AudioTracks from './pages/AudioTracks';
+import AppSettings from './pages/AppSettings';
+import UserSessions from './pages/UserSessions';
+import RevenueAnalytics from './pages/RevenueAnalytics';
+import DataExport from './pages/DataExport';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { auth } from './config/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -51,22 +52,24 @@ function App() {
     <BrowserRouter basename="/admin">
       <Routes>
         <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
+        <Route path="/login" element={<Login />} />
         <Route element={isAuthenticated ? <DashboardLayout /> : <Navigate to="/" />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/users" element={<Users />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/audio" element={<AudioManagement />} />
+          <Route path="/tracks" element={<AudioTracks />} />
           <Route path="/feedback" element={<Feedback />} />
           <Route path="/subscriptions" element={<Subscriptions />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/revenue" element={<RevenueAnalytics />} />
+          <Route path="/sessions" element={<UserSessions />} />
           <Route path="/notifications" element={<PushNotifications />} />
           <Route path="/promo-codes" element={<PromoCodes />} />
           <Route path="/content" element={<ContentManagement />} />
           <Route path="/activity-logs" element={<ActivityLogs />} />
-          <Route path="/email-campaigns" element={<EmailCampaigns />} />
-          <Route path="/system-health" element={<SystemHealth />} />
-          <Route path="/engagement" element={<UserEngagement />} />
-          <Route path="/bulk-operations" element={<BulkOperations />} />
+          <Route path="/app-settings" element={<AppSettings />} />
+          <Route path="/export" element={<DataExport />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
       </Routes>

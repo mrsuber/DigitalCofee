@@ -1355,6 +1355,489 @@ app.delete('/api/admin/feedback/:feedbackId', authenticateAdmin, async (req, res
     }
 });
 
+// ========================================
+// PUSH NOTIFICATIONS ENDPOINTS
+// ========================================
+
+// Send push notification (admin only)
+app.post('/api/admin/notifications/send', authenticateAdmin, async (req, res) => {
+    try {
+        const { title, body, target, userEmail } = req.body;
+
+        if (!title || !body) {
+            return res.status(400).json({ error: 'Title and body are required' });
+        }
+
+        let recipientTokens = [];
+        let recipientCount = 0;
+
+        // Get user tokens based on target
+        if (target === 'specific') {
+            if (!userEmail) {
+                return res.status(400).json({ error: 'User email required for specific targeting' });
+            }
+
+            const userSnapshot = await db.collection('users')
+                .where('email', '==', userEmail)
+                .limit(1)
+                .get();
+
+            if (!userSnapshot.empty) {
+                const userData = userSnapshot.docs[0].data();
+                if (userData.fcmToken) {
+                    recipientTokens.push(userData.fcmToken);
+                    recipientCount = 1;
+                }
+            }
+        } else {
+            let query = db.collection('users');
+
+            if (target === 'premium') {
+                query = query.where('subscription.tier', 'in', ['premium', 'elite', 'lifetime']);
+            } else if (target === 'free') {
+                query = query.where('subscription.tier', '==', 'free');
+            }
+
+            const usersSnapshot = await query.get();
+            usersSnapshot.forEach(doc => {
+                const userData = doc.data();
+                if (userData.fcmToken) {
+                    recipientTokens.push(userData.fcmToken);
+                }
+            });
+            recipientCount = recipientTokens.length;
+        }
+
+        // Send notification via Firebase Cloud Messaging
+        if (recipientTokens.length > 0 && messaging) {
+            const message = {
+                notification: {
+                    title,
+                    body
+                },
+                tokens: recipientTokens.slice(0, 500) // FCM limit
+            };
+
+            try {
+                await messaging.sendMulticast(message);
+            } catch (fcmError) {
+                console.error('FCM send error:', fcmError);
+                // Continue even if FCM fails
+            }
+        }
+
+        // Log notification
+        await db.collection('notifications').add({
+            title,
+            body,
+            target,
+            sentAt: admin.firestore.FieldValue.serverTimestamp(),
+            sentBy: req.user.email,
+            recipientCount,
+            status: 'sent'
+        });
+
+        res.json({
+            success: true,
+            recipientCount,
+            message: 'Notification sent successfully'
+        });
+    } catch (error) {
+        console.error('Send notification error:', error);
+        res.status(500).json({ error: 'Failed to send notification' });
+    }
+});
+
+// Get notification history (admin only)
+app.get('/api/admin/notifications', authenticateAdmin, async (req, res) => {
+    try {
+        const notificationsSnapshot = await db.collection('notifications')
+            .orderBy('sentAt', 'desc')
+            .limit(100)
+            .get();
+
+        const notifications = [];
+        notificationsSnapshot.forEach(doc => {
+            const data = doc.data();
+            notifications.push({
+                id: doc.id,
+                ...data,
+                sentAt: data.sentAt?.toDate().toISOString()
+            });
+        });
+
+        res.json({ notifications });
+    } catch (error) {
+        console.error('Get notifications error:', error);
+        res.status(500).json({ error: 'Failed to fetch notifications' });
+    }
+});
+
+// ========================================
+// PROMO CODES ENDPOINTS
+// ========================================
+
+// Get all promo codes (admin only)
+app.get('/api/admin/promo-codes', authenticateAdmin, async (req, res) => {
+    try {
+        const codesSnapshot = await db.collection('promoCodes')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+        const codes = [];
+        codesSnapshot.forEach(doc => {
+            const data = doc.data();
+            codes.push({
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt?.toDate().toISOString(),
+                expiresAt: data.expiresAt?.toDate().toISOString()
+            });
+        });
+
+        res.json({ codes });
+    } catch (error) {
+        console.error('Get promo codes error:', error);
+        res.status(500).json({ error: 'Failed to fetch promo codes' });
+    }
+});
+
+// Create promo code (admin only)
+app.post('/api/admin/promo-codes', authenticateAdmin, async (req, res) => {
+    try {
+        const { code, description, discountType, discountValue, tier, maxUses, expiresAt } = req.body;
+
+        if (!code || !discountType || !discountValue || !tier) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Check if code already exists
+        const existingCode = await db.collection('promoCodes')
+            .where('code', '==', code.toUpperCase())
+            .limit(1)
+            .get();
+
+        if (!existingCode.empty) {
+            return res.status(400).json({ error: 'Promo code already exists' });
+        }
+
+        const promoData = {
+            code: code.toUpperCase(),
+            description: description || '',
+            discountType,
+            discountValue: Number(discountValue),
+            tier,
+            maxUses: Number(maxUses) || 100,
+            currentUses: 0,
+            expiresAt: expiresAt ? admin.firestore.Timestamp.fromDate(new Date(expiresAt)) : null,
+            active: true,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdBy: req.user.email
+        };
+
+        const docRef = await db.collection('promoCodes').add(promoData);
+
+        res.json({
+            success: true,
+            codeId: docRef.id,
+            message: 'Promo code created successfully'
+        });
+    } catch (error) {
+        console.error('Create promo code error:', error);
+        res.status(500).json({ error: 'Failed to create promo code' });
+    }
+});
+
+// Update promo code (admin only)
+app.patch('/api/admin/promo-codes/:codeId', authenticateAdmin, async (req, res) => {
+    try {
+        const { codeId } = req.params;
+        const updates = req.body;
+
+        await db.collection('promoCodes').doc(codeId).update({
+            ...updates,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        res.json({
+            success: true,
+            message: 'Promo code updated successfully'
+        });
+    } catch (error) {
+        console.error('Update promo code error:', error);
+        res.status(500).json({ error: 'Failed to update promo code' });
+    }
+});
+
+// Delete promo code (admin only)
+app.delete('/api/admin/promo-codes/:codeId', authenticateAdmin, async (req, res) => {
+    try {
+        const { codeId } = req.params;
+
+        await db.collection('promoCodes').doc(codeId).delete();
+
+        res.json({
+            success: true,
+            message: 'Promo code deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete promo code error:', error);
+        res.status(500).json({ error: 'Failed to delete promo code' });
+    }
+});
+
+// ========================================
+// CONTENT MANAGEMENT ENDPOINTS
+// ========================================
+
+// Get app content (admin only)
+app.get('/api/admin/content', authenticateAdmin, async (req, res) => {
+    try {
+        const { type } = req.query;
+
+        let query = db.collection('appContent');
+        if (type && type !== 'all') {
+            query = query.where('type', '==', type);
+        }
+
+        const contentSnapshot = await query.orderBy('order', 'asc').get();
+
+        const contents = [];
+        contentSnapshot.forEach(doc => {
+            const data = doc.data();
+            contents.push({
+                id: doc.id,
+                ...data,
+                createdAt: data.createdAt?.toDate().toISOString(),
+                updatedAt: data.updatedAt?.toDate().toISOString()
+            });
+        });
+
+        res.json({ contents });
+    } catch (error) {
+        console.error('Get content error:', error);
+        res.status(500).json({ error: 'Failed to fetch content' });
+    }
+});
+
+// Create app content (admin only)
+app.post('/api/admin/content', authenticateAdmin, async (req, res) => {
+    try {
+        const { type, title, content, category, author, active } = req.body;
+
+        if (!type || !title || !content) {
+            return res.status(400).json({ error: 'Type, title, and content are required' });
+        }
+
+        const contentData = {
+            type,
+            title,
+            content,
+            category: category || null,
+            author: author || null,
+            active: active !== undefined ? active : true,
+            order: 0,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        const docRef = await db.collection('appContent').add(contentData);
+
+        res.json({
+            success: true,
+            contentId: docRef.id,
+            message: 'Content created successfully'
+        });
+    } catch (error) {
+        console.error('Create content error:', error);
+        res.status(500).json({ error: 'Failed to create content' });
+    }
+});
+
+// Update app content (admin only)
+app.put('/api/admin/content/:contentId', authenticateAdmin, async (req, res) => {
+    try {
+        const { contentId } = req.params;
+        const updates = { ...req.body };
+
+        delete updates.createdAt;
+        updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+
+        await db.collection('appContent').doc(contentId).update(updates);
+
+        res.json({
+            success: true,
+            message: 'Content updated successfully'
+        });
+    } catch (error) {
+        console.error('Update content error:', error);
+        res.status(500).json({ error: 'Failed to update content' });
+    }
+});
+
+// Patch app content (admin only)
+app.patch('/api/admin/content/:contentId', authenticateAdmin, async (req, res) => {
+    try {
+        const { contentId } = req.params;
+        const updates = { ...req.body };
+
+        updates.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+
+        await db.collection('appContent').doc(contentId).update(updates);
+
+        res.json({
+            success: true,
+            message: 'Content updated successfully'
+        });
+    } catch (error) {
+        console.error('Patch content error:', error);
+        res.status(500).json({ error: 'Failed to update content' });
+    }
+});
+
+// Delete app content (admin only)
+app.delete('/api/admin/content/:contentId', authenticateAdmin, async (req, res) => {
+    try {
+        const { contentId } = req.params;
+
+        await db.collection('appContent').doc(contentId).delete();
+
+        res.json({
+            success: true,
+            message: 'Content deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete content error:', error);
+        res.status(500).json({ error: 'Failed to delete content' });
+    }
+});
+
+// ========================================
+// ACTIVITY LOGS ENDPOINTS
+// ========================================
+
+// Helper function to log admin activity
+const logAdminActivity = async (adminId, adminEmail, action, resource, resourceId, details, status = 'success', ipAddress = null) => {
+    try {
+        await db.collection('activityLogs').add({
+            adminId,
+            adminEmail,
+            action,
+            resource,
+            resourceId: resourceId || null,
+            details: details || null,
+            status,
+            ipAddress,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (error) {
+        console.error('Failed to log activity:', error);
+    }
+};
+
+// Get activity logs (admin only)
+app.get('/api/admin/activity-logs', authenticateAdmin, async (req, res) => {
+    try {
+        const { action, status, dateFrom, dateTo, page = 1, limit = 50 } = req.query;
+
+        let query = db.collection('activityLogs');
+
+        if (action && action !== 'all') {
+            query = query.where('action', '==', action);
+        }
+
+        if (status && status !== 'all') {
+            query = query.where('status', '==', status);
+        }
+
+        if (dateFrom) {
+            query = query.where('timestamp', '>=', admin.firestore.Timestamp.fromDate(new Date(dateFrom)));
+        }
+
+        if (dateTo) {
+            query = query.where('timestamp', '<=', admin.firestore.Timestamp.fromDate(new Date(dateTo)));
+        }
+
+        // Get total count
+        const totalSnapshot = await query.get();
+        const total = totalSnapshot.size;
+
+        // Get paginated results
+        query = query.orderBy('timestamp', 'desc')
+            .limit(parseInt(limit))
+            .offset((parseInt(page) - 1) * parseInt(limit));
+
+        const logsSnapshot = await query.get();
+
+        const logs = [];
+        logsSnapshot.forEach(doc => {
+            const data = doc.data();
+            logs.push({
+                id: doc.id,
+                ...data,
+                timestamp: data.timestamp?.toDate().toISOString()
+            });
+        });
+
+        res.json({ logs, total });
+    } catch (error) {
+        console.error('Get activity logs error:', error);
+        res.status(500).json({ error: 'Failed to fetch activity logs' });
+    }
+});
+
+// Export activity logs as CSV (admin only)
+app.get('/api/admin/activity-logs/export', authenticateAdmin, async (req, res) => {
+    try {
+        const { action, status, dateFrom, dateTo } = req.query;
+
+        let query = db.collection('activityLogs');
+
+        if (action && action !== 'all') {
+            query = query.where('action', '==', action);
+        }
+
+        if (status && status !== 'all') {
+            query = query.where('status', '==', status);
+        }
+
+        if (dateFrom) {
+            query = query.where('timestamp', '>=', admin.firestore.Timestamp.fromDate(new Date(dateFrom)));
+        }
+
+        if (dateTo) {
+            query = query.where('timestamp', '<=', admin.firestore.Timestamp.fromDate(new Date(dateTo)));
+        }
+
+        const logsSnapshot = await query.orderBy('timestamp', 'desc').limit(1000).get();
+
+        // Generate CSV
+        let csv = 'Timestamp,Admin Email,Action,Resource,Resource ID,Details,Status,IP Address\n';
+
+        logsSnapshot.forEach(doc => {
+            const data = doc.data();
+            const row = [
+                data.timestamp?.toDate().toISOString() || '',
+                data.adminEmail || '',
+                data.action || '',
+                data.resource || '',
+                data.resourceId || '',
+                (data.details || '').replace(/,/g, ';'),
+                data.status || '',
+                data.ipAddress || ''
+            ];
+            csv += row.join(',') + '\n';
+        });
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=activity-logs-${new Date().toISOString().split('T')[0]}.csv`);
+        res.send(csv);
+    } catch (error) {
+        console.error('Export activity logs error:', error);
+        res.status(500).json({ error: 'Failed to export activity logs' });
+    }
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log('Digital Coffee server running on port ' + PORT);

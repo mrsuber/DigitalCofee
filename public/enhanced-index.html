@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Coffee - Transform Your Mind with Binaural Beats</title>
+    <meta name="description" content="Experience scientifically-crafted binaural beats. Track your progress, build streaks, and unlock your mental potential with Alpha and Beta wave frequencies.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --purple-600: #9333ea;
+            --purple-700: #7e22ce;
+            --cyan-500: #06b6d4;
+            --brown: #8B4513;
+            --cappuccino: #D2691E;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--gray-800);
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e5e7eb;
+            z-index: 1000;
+        }
+
+        nav {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--purple-600);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--purple-600), var(--cyan-500));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--gray-700);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--purple-600);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 8rem 2rem 4rem;
+            background: linear-gradient(180deg, var(--gray-50) 0%, white 100%);
+        }
+
+        .hero-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--purple-600), var(--cyan-500));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--gray-600);
+            margin-bottom: 2rem;
+        }
+
+        .download-badge {
+            height: 60px;
+            margin-right: 1rem;
+        }
+
+        /* Stats */
+        .stats {
+            background: linear-gradient(135deg, var(--purple-600), #6b21a8);
+            padding: 4rem 2rem;
+            color: white;
+        }
+
+        .stats-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 3rem;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 3rem;
+            font-weight: 800;
+        }
+
+        /* Features */
+        .features {
+            padding: 6rem 2rem;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 4rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+
+        .features-grid {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+            background: var(--gray-50);
+            border-radius: 1rem;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+            background: white;
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--purple-600), var(--cyan-500));
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        /* How it Works */
+        .how-it-works {
+            padding: 6rem 2rem;
+            background: var(--gray-50);
+        }
+
+        .steps-grid {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+        }
+
+        .step-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+        }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--purple-600), var(--cyan-500));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: white;
+            margin: 0 auto 1.5rem;
+        }
+
+        /* Pricing */
+        .pricing {
+            padding: 6rem 2rem;
+        }
+
+        .pricing-grid {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .pricing-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s;
+        }
+
+        .pricing-card.featured {
+            border-color: var(--purple-600);
+            transform: scale(1.05);
+            box-shadow: 0 20px 60px -10px rgba(147, 51, 234, 0.3);
+        }
+
+        .pricing-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-card .price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--purple-600);
+            margin: 1rem 0;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin: 2rem 0;
+        }
+
+        .pricing-features li {
+            padding: 0.75rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .pricing-features li::before {
+            content: '✓';
+            color: var(--purple-600);
+            font-weight: 700;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--gray-900);
+            color: white;
+            padding: 4rem 2rem 2rem;
+        }
+
+        .footer-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+
+        .footer-links h4 {
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: #d1d5db;
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem 0;
+        }
+
+        .footer-links a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding-top: 2rem;
+            border-top: 1px solid var(--gray-700);
+            text-align: center;
+            color: #9ca3af;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-content, .features-grid, .steps-grid, .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+            .stats-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .cta-button {
+            background: linear-gradient(135deg, var(--purple-600), var(--purple-700));
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(147, 51, 234, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/" class="logo">
+                <div class="logo-icon">☕</div>
+                <span>Digital Coffee</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+                <li><a href="/admin">Admin</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <div>
+                <h1>Transform Your Mind with Binaural Beats</h1>
+                <p>Experience scientifically-crafted Alpha & Beta wave frequencies that enhance focus, boost creativity, and promote deep relaxation. Track your progress, build daily streaks, and unlock your mental potential.</p>
+                <div>
+                    <img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" alt="App Store" class="download-badge">
+                    <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Google Play" class="download-badge" style="height: 70px;">
+                </div>
+            </div>
+            <div></div>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="stats-container">
+            <div class="stat-item">
+                <h3>10K+</h3>
+                <p>Active Users</p>
+            </div>
+            <div class="stat-item">
+                <h3>50K+</h3>
+                <p>Sessions Completed</p>
+            </div>
+            <div class="stat-item">
+                <h3>4.8★</h3>
+                <p>App Rating</p>
+            </div>
+            <div class="stat-item">
+                <h3>100K+</h3>
+                <p>Hours of Focus</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="section-header">
+            <h2>Everything You Need to Optimize Your Mind</h2>
+            <p>Powerful features designed to help you achieve your mental goals</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🧘</div>
+                <h3>Alpha Waves (8-12 Hz)</h3>
+                <p>Enhance creativity, relaxation, and ideation. Perfect for brainstorming, creative work, and meditation. Enter a state of calm alertness.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Beta Waves (12-30 Hz)</h3>
+                <p>Boost focus, alertness, and active thinking. Ideal for tasks requiring concentration, studying, and problem-solving.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Progress Tracking</h3>
+                <p>Monitor your total sessions, listening minutes, and view detailed analytics of your Alpha vs Beta wave usage.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔥</div>
+                <h3>Daily Streaks</h3>
+                <p>Build consistency with daily streak tracking. See your current streak and challenge yourself to beat your longest streak.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎧</div>
+                <h3>High-Quality Audio</h3>
+                <p>Premium binaural beats designed by audio professionals. Stream or download tracks for offline listening.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>Beautiful Interface</h3>
+                <p>Intuitive, gradient-rich design with smooth animations. Easy to use with a focus on your listening experience.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📈</div>
+                <h3>Session History</h3>
+                <p>Review all your past sessions with completion status, duration, and wave type. Track your journey over time.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Goal-Oriented</h3>
+                <p>Choose your mode based on your goal - creativity with Alpha or focus with Beta. Each session brings you closer to mastery.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💬</div>
+                <h3>Feedback & Support</h3>
+                <p>Share your experience, report issues, and get support directly within the app. We're here to help you succeed.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="how-it-works" id="how-it-works">
+        <div class="section-header">
+            <h2>How It Works</h2>
+            <p>Get started in minutes and transform your mental state</p>
+        </div>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-number">1</div>
+                <h3>Create Account</h3>
+                <p>Sign up with email or use Google/Apple authentication for quick access.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">2</div>
+                <h3>Choose Your Mode</h3>
+                <p>Select Alpha waves for creativity or Beta waves for focus based on your current goal.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">3</div>
+                <h3>Start Listening</h3>
+                <p>Pick a track, hit play, and let the binaural beats guide your mind to the optimal state.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-number">4</div>
+                <h3>Track Progress</h3>
+                <p>View your stats, build streaks, and watch your mental performance improve over time.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="pricing" id="pricing">
+        <div class="section-header">
+            <h2>Choose Your Plan</h2>
+            <p>Start free and upgrade when you're ready</p>
+        </div>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Free</h3>
+                <div class="price">$0<span style="font-size: 1.125rem; color: var(--gray-600); font-weight: 400;">/month</span></div>
+                <p>Perfect for getting started</p>
+                <ul class="pricing-features">
+                    <li>4 Alpha Wave Tracks</li>
+                    <li>4 Beta Wave Tracks</li>
+                    <li>Basic Progress Tracking</li>
+                    <li>Daily Session Limits</li>
+                    <li>Session History</li>
+                </ul>
+                <a href="#download" class="cta-button" style="width: 100%; text-align: center;">Get Started</a>
+            </div>
+
+            <div class="pricing-card featured">
+                <h3>Premium</h3>
+                <div class="price">$9.99<span style="font-size: 1.125rem; color: var(--gray-600); font-weight: 400;">/month</span></div>
+                <p>For serious practitioners</p>
+                <ul class="pricing-features">
+                    <li>Unlimited Sessions</li>
+                    <li>Full Track Library</li>
+                    <li>Advanced Analytics</li>
+                    <li>Offline Downloads</li>
+                    <li>Priority Support</li>
+                    <li>No Ads</li>
+                    <li>Exclusive Beta Access</li>
+                </ul>
+                <a href="#download" class="cta-button" style="width: 100%; text-align: center;">Start Free Trial</a>
+            </div>
+
+            <div class="pricing-card">
+                <h3>Lifetime</h3>
+                <div class="price">$99<span style="font-size: 1.125rem; color: var(--gray-600); font-weight: 400;">one-time</span></div>
+                <p>Best value, pay once</p>
+                <ul class="pricing-features">
+                    <li>All Premium Features</li>
+                    <li>Lifetime Access</li>
+                    <li>Future Updates Free</li>
+                    <li>VIP Support</li>
+                    <li>Early Feature Access</li>
+                    <li>Community Access</li>
+                    <li>Forever Guarantee</li>
+                </ul>
+                <a href="#download" class="cta-button" style="width: 100%; text-align: center;">Buy Lifetime</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <div>
+                <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Digital Coffee</h3>
+                <p style="color: #9ca3af; margin-bottom: 1.5rem;">Scientifically-crafted binaural beats for enhanced focus, creativity, and relaxation.</p>
+                <p style="color: #9ca3af;">&copy; 2026 Digital Coffee. All rights reserved.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="#download">Download</a></li>
+                    <li><a href="/admin">Admin Portal</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="/about">About Us</a></li>
+                    <li><a href="/contact">Contact</a></li>
+                    <li><a href="#careers">Careers</a></li>
+                    <li><a href="#press">Press Kit</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="/privacy">Privacy Policy</a></li>
+                    <li><a href="/terms">Terms of Service</a></li>
+                    <li><a href="#cookies">Cookie Policy</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>Made with ☕ and 💜 for better focus and relaxation</p>
+        </div>
+    </footer>
+</body>
+</html>
